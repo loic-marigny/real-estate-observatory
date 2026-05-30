@@ -1,50 +1,33 @@
 import { MetricCard } from '../components/MetricCard'
+import type {
+  HomeHero,
+  Metric,
+  PlaceholderSection,
+  SourceReference,
+} from '../types/realEstate'
 
-const metrics = [
-  {
-    label: 'Prix médian au m²',
-    value: '3 420 €',
-    trend: '+2,8 %',
-    description: 'Évolution annuelle estimée à l’échelle nationale.',
-  },
-  {
-    label: 'Transactions',
-    value: '842 k',
-    trend: '-4,1 %',
-    description: 'Volume annuel de ventes anciennes observées.',
-  },
-  {
-    label: 'Délai de vente',
-    value: '71 jours',
-    trend: '+5 jours',
-    description: 'Temps moyen entre publication et signature.',
-  },
-  {
-    label: 'Rendement locatif brut',
-    value: '5,1 %',
-    trend: '+0,2 pt',
-    description: 'Indicateur agrégé sur les principales métropoles.',
-  },
-]
+type HomeProps = {
+  hero: HomeHero
+  metrics: Metric[]
+  mapSection: PlaceholderSection
+  chartSection: PlaceholderSection
+  sources: SourceReference[]
+}
 
-const sources = [
-  'DVF / Etalab',
-  'INSEE',
-  'Base logements et loyers',
-  'Notaires de France',
-]
-
-export function Home() {
+export function Home({
+  hero,
+  metrics,
+  mapSection,
+  chartSection,
+  sources,
+}: HomeProps) {
   return (
     <div className="page">
       <section className="hero-panel">
         <div className="hero-panel__content">
-          <p className="eyebrow">Plateforme publique</p>
-          <h1>Observatoire immobilier France</h1>
-          <p className="lead">
-            Suivre les dynamiques de prix, de transactions et de tension
-            immobilière à partir de sources publiques consolidées.
-          </p>
+          <p className="eyebrow">{hero.eyebrow}</p>
+          <h1>{hero.title}</h1>
+          <p className="lead">{hero.description}</p>
         </div>
       </section>
 
@@ -56,7 +39,7 @@ export function Home() {
 
         <div className="metrics-grid">
           {metrics.map((metric) => (
-            <MetricCard key={metric.label} {...metric} />
+            <MetricCard key={metric.id} metric={metric} />
           ))}
         </div>
       </section>
@@ -64,21 +47,21 @@ export function Home() {
       <section className="content-grid">
         <article className="panel panel--placeholder">
           <div className="section-heading">
-            <p className="eyebrow">Carte</p>
-            <h2>Répartition territoriale</h2>
+            <p className="eyebrow">{mapSection.eyebrow}</p>
+            <h2>{mapSection.title}</h2>
           </div>
           <div className="placeholder-block placeholder-block--map">
-            Carte interactive France à intégrer
+            {mapSection.description}
           </div>
         </article>
 
         <article className="panel panel--placeholder">
           <div className="section-heading">
-            <p className="eyebrow">Graphique</p>
-            <h2>Évolution temporelle</h2>
+            <p className="eyebrow">{chartSection.eyebrow}</p>
+            <h2>{chartSection.title}</h2>
           </div>
           <div className="placeholder-block placeholder-block--chart">
-            Visualisation de tendance à intégrer
+            {chartSection.description}
           </div>
         </article>
       </section>
@@ -91,8 +74,8 @@ export function Home() {
 
         <div className="sources-list">
           {sources.map((source) => (
-            <span key={source} className="source-pill">
-              {source}
+            <span key={source.id} className="source-pill">
+              {source.label}
             </span>
           ))}
         </div>

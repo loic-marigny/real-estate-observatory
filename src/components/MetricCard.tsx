@@ -1,24 +1,18 @@
+import type { Metric } from '../types/realEstate'
+
 type MetricCardProps = {
-  label: string
-  value: string
-  trend: string
-  description: string
+  metric: Metric
 }
 
-export function MetricCard({
-  label,
-  value,
-  trend,
-  description,
-}: MetricCardProps) {
+export function MetricCard({ metric }: MetricCardProps) {
   return (
     <article className="metric-card">
-      <p className="metric-card__label">{label}</p>
+      <p className="metric-card__label">{metric.label}</p>
       <div className="metric-card__header">
-        <strong className="metric-card__value">{value}</strong>
-        <span className="metric-card__trend">{trend}</span>
+        <strong className="metric-card__value">{metric.value}</strong>
+        <span className="metric-card__trend">{metric.trend}</span>
       </div>
-      <p className="metric-card__description">{description}</p>
+      <p className="metric-card__description">{metric.description}</p>
     </article>
   )
 }

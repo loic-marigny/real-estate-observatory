@@ -1,0 +1,164 @@
+import type { ObservatoryContent } from '../types/realEstate'
+
+export const mockObservatoryContent: ObservatoryContent = {
+  home: {
+    hero: {
+      eyebrow: 'Plateforme publique',
+      title: 'Observatoire immobilier France',
+      description:
+        'Suivre les dynamiques de prix, de transactions et de tension immobilière à partir de sources publiques consolidées.',
+    },
+    metrics: [
+      {
+        id: 'median-price',
+        label: 'Prix médian au m²',
+        value: '3 420 €',
+        trend: '+2,8 %',
+        description: 'Évolution annuelle estimée à l’échelle nationale.',
+      },
+      {
+        id: 'transactions',
+        label: 'Transactions',
+        value: '842 k',
+        trend: '-4,1 %',
+        description: 'Volume annuel de ventes anciennes observées.',
+      },
+      {
+        id: 'sale-delay',
+        label: 'Délai de vente',
+        value: '71 jours',
+        trend: '+5 jours',
+        description: 'Temps moyen entre publication et signature.',
+      },
+      {
+        id: 'rental-yield',
+        label: 'Rendement locatif brut',
+        value: '5,1 %',
+        trend: '+0,2 pt',
+        description: 'Indicateur agrégé sur les principales métropoles.',
+      },
+    ],
+    mapSection: {
+      eyebrow: 'Carte',
+      title: 'Répartition territoriale',
+      description: 'Carte interactive France à intégrer',
+    },
+    chartSection: {
+      eyebrow: 'Graphique',
+      title: 'Évolution temporelle',
+      description: 'Visualisation de tendance à intégrer',
+    },
+    sources: [
+      { id: 'dvf', label: 'DVF / Etalab' },
+      { id: 'insee-filosofi', label: 'INSEE FiLoSoFi' },
+      { id: 'ademe-dpe', label: 'ADEME DPE' },
+      { id: 'banque-de-france', label: 'Banque de France' },
+      { id: 'sdes-sitadel', label: 'SDES Sitadel' },
+    ],
+  },
+  explorer: {
+    hero: {
+      eyebrow: 'Explorer',
+      title: 'Explorer le marché immobilier',
+      description:
+        'Cette page accueillera les filtres géographiques, les comparaisons par territoire et les visualisations détaillées.',
+    },
+    sections: [
+      {
+        title: 'Filtres à venir',
+        description:
+          'Sélection par région, département, commune, période et type de bien.',
+      },
+      {
+        title: 'Visualisations prévues',
+        description:
+          'Cartes choroplèthes, séries temporelles, distributions de prix et tableaux comparatifs.',
+      },
+    ],
+  },
+  methodology: {
+    hero: {
+      eyebrow: 'Méthodologie',
+      title: 'Construction des indicateurs',
+      description:
+        'Les premières versions s’appuieront sur un socle de jeux de données ouverts couvrant transactions, revenus, performance énergétique, crédit et construction neuve.',
+    },
+    sources: [
+      {
+        id: 'dvf',
+        category: 'Transactions',
+        name: 'DVF',
+        description:
+          'Demandes de valeurs foncières pour les mutations immobilières, les prix de vente et les caractéristiques principales des biens.',
+      },
+      {
+        id: 'filosofi',
+        category: 'Revenus',
+        name: 'INSEE FiLoSoFi',
+        description:
+          'Indicateurs locaux de niveau de vie et de revenus pour mettre en regard les prix immobiliers et la solvabilité des ménages.',
+      },
+      {
+        id: 'dpe',
+        category: 'Énergie',
+        name: 'ADEME DPE',
+        description:
+          'Diagnostics de performance énergétique pour enrichir l’analyse sur la qualité énergétique du parc résidentiel.',
+      },
+      {
+        id: 'credit',
+        category: 'Financement',
+        name: 'Banque de France',
+        description:
+          'Séries macroéconomiques et de crédit pour contextualiser les conditions de financement et la dynamique de marché.',
+      },
+      {
+        id: 'construction',
+        category: 'Offre neuve',
+        name: 'SDES Sitadel',
+        description:
+          'Permis de construire et mises en chantier pour suivre la production neuve et la pression sur l’offre future.',
+      },
+    ],
+  },
+  pipeline: {
+    hero: {
+      eyebrow: 'Pipeline',
+      title: 'Préparer l’intégration des données',
+      description:
+        'Le tableau de bord sera alimenté par une chaîne simple et traçable, de l’open data brut jusqu’aux indicateurs servis à l’interface.',
+    },
+    steps: [
+      {
+        id: 'raw-open-data',
+        title: 'Raw open data',
+        description:
+          'Collecte des fichiers sources publiés par les administrations et opérateurs publics.',
+      },
+      {
+        id: 'cleaned-data',
+        title: 'Cleaned data',
+        description:
+          'Nettoyage, normalisation, contrôle qualité et alignement géographique des jeux de données.',
+      },
+      {
+        id: 'indicators',
+        title: 'Indicators',
+        description:
+          'Calcul des séries, agrégats territoriaux et métriques produits pour l’observatoire.',
+      },
+      {
+        id: 'api',
+        title: 'API',
+        description:
+          'Exposition d’un contrat de données stable pour les pages publiques et les futurs filtres interactifs.',
+      },
+      {
+        id: 'dashboard',
+        title: 'Dashboard',
+        description:
+          'Consommation des indicateurs par l’interface React pour l’exploration et la communication publique.',
+      },
+    ],
+  },
+}

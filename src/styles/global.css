@@ -74,6 +74,10 @@ h2 {
   font-size: clamp(1.6rem, 3vw, 2.3rem);
 }
 
+h3 {
+  font-size: 1.2rem;
+}
+
 p {
   color: var(--color-text);
 }

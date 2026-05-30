@@ -1,15 +1,10 @@
 import type { PropsWithChildren } from 'react'
-import type { PageKey } from '../App'
+import type { NavigationItem, PageKey } from '../types/realEstate'
 import { Navbar } from './Navbar'
-
-type NavItem = {
-  key: PageKey
-  label: string
-}
 
 type LayoutProps = PropsWithChildren<{
   currentPage: PageKey
-  navItems: NavItem[]
+  navItems: NavigationItem[]
   onNavigate: (page: PageKey) => void
 }>
 

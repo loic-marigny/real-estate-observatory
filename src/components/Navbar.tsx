@@ -1,11 +1,8 @@
-import type { PageKey } from '../App'
+import type { NavigationItem, PageKey } from '../types/realEstate'
 
 type NavbarProps = {
   currentPage: PageKey
-  items: Array<{
-    key: PageKey
-    label: string
-  }>
+  items: NavigationItem[]
   onNavigate: (page: PageKey) => void
 }
 
