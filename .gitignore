@@ -22,3 +22,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local raw data
+data/raw/
+*.csv
+*.txt
+*.zip
+*.parquet
+
+# Keep folder structure
+!data/raw/.gitkeep
