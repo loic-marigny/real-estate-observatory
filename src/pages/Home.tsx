@@ -1,5 +1,8 @@
+import { useEffect, useState } from 'react'
 import { MetricCard } from '../components/MetricCard'
+import { getDvfSummary } from '../services/dvfService'
 import type {
+  DvfSummary,
   HomeHero,
   Metric,
   PlaceholderSection,
@@ -14,6 +17,55 @@ type HomeProps = {
   sources: SourceReference[]
 }
 
+const formatInteger = (value: number): string =>
+  new Intl.NumberFormat('fr-FR', {
+    maximumFractionDigits: 0,
+  }).format(value)
+
+const formatSurface = (value: number): string => `${formatInteger(value)} m²`
+
+const formatCurrencyPerSquareMeter = (value: number): string =>
+  `${formatInteger(value)} €`
+
+const buildMetricsFromDvfSummary = (summary: DvfSummary): Metric[] => [
+  {
+    id: 'median-price',
+    label: 'Prix médian au m²',
+    value:
+      summary.medianPricePerSquareMeter !== null
+        ? formatCurrencyPerSquareMeter(summary.medianPricePerSquareMeter)
+        : 'N/A',
+    trend: 'DVF chargé',
+    description:
+      'Calculé sur les ventes résidentielles filtrées dans le fichier DVF local.',
+  },
+  {
+    id: 'transactions',
+    label: 'Ventes résidentielles',
+    value: formatInteger(summary.totalSalesCount),
+    trend: 'DVF chargé',
+    description:
+      'Nombre total de mutations conservées après filtrage des ventes résidentielles.',
+  },
+  {
+    id: 'median-surface',
+    label: 'Surface médiane',
+    value:
+      summary.medianSurface !== null ? formatSurface(summary.medianSurface) : 'N/A',
+    trend: 'DVF chargé',
+    description:
+      'Surface bâtie médiane des ventes résidentielles retenues dans l’échantillon.',
+  },
+  {
+    id: 'departments-covered',
+    label: 'Départements couverts',
+    value: formatInteger(summary.departments.length),
+    trend: 'DVF chargé',
+    description:
+      'Nombre de départements présents dans le résumé local généré à partir de DVF.',
+  },
+]
+
 export function Home({
   hero,
   metrics,
@@ -21,6 +73,34 @@ export function Home({
   chartSection,
   sources,
 }: HomeProps) {
+  const [displayMetrics, setDisplayMetrics] = useState<Metric[]>(metrics)
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadDvfSummary = async () => {
+      try {
+        const summary = await getDvfSummary()
+
+        if (!isMounted) {
+          return
+        }
+
+        setDisplayMetrics(buildMetricsFromDvfSummary(summary))
+      } catch {
+        if (isMounted) {
+          setDisplayMetrics(metrics)
+        }
+      }
+    }
+
+    void loadDvfSummary()
+
+    return () => {
+      isMounted = false
+    }
+  }, [metrics])
+
   return (
     <div className="page">
       <section className="hero-panel">
@@ -38,7 +118,7 @@ export function Home({
         </div>
 
         <div className="metrics-grid">
-          {metrics.map((metric) => (
+          {displayMetrics.map((metric) => (
             <MetricCard key={metric.id} metric={metric} />
           ))}
         </div>

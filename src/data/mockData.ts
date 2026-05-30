@@ -1,4 +1,4 @@
-import type { ObservatoryContent } from '../types/realEstate'
+import type { DvfSummary, ObservatoryContent } from '../types/realEstate'
 
 export const mockObservatoryContent: ObservatoryContent = {
   home: {
@@ -13,29 +13,29 @@ export const mockObservatoryContent: ObservatoryContent = {
         id: 'median-price',
         label: 'Prix médian au m²',
         value: '3 420 €',
-        trend: '+2,8 %',
-        description: 'Évolution annuelle estimée à l’échelle nationale.',
+        trend: 'DVF local',
+        description: 'Estimation de référence en attendant le chargement du résumé DVF.',
       },
       {
         id: 'transactions',
-        label: 'Transactions',
-        value: '842 k',
-        trend: '-4,1 %',
-        description: 'Volume annuel de ventes anciennes observées.',
+        label: 'Ventes résidentielles',
+        value: '842',
+        trend: 'Échantillon',
+        description: 'Nombre de ventes utilisé comme valeur de repli côté interface.',
       },
       {
-        id: 'sale-delay',
-        label: 'Délai de vente',
-        value: '71 jours',
-        trend: '+5 jours',
-        description: 'Temps moyen entre publication et signature.',
+        id: 'median-surface',
+        label: 'Surface médiane',
+        value: '71 m²',
+        trend: 'DVF local',
+        description: 'Surface bâtie médiane sur les ventes résidentielles retenues.',
       },
       {
-        id: 'rental-yield',
-        label: 'Rendement locatif brut',
-        value: '5,1 %',
-        trend: '+0,2 pt',
-        description: 'Indicateur agrégé sur les principales métropoles.',
+        id: 'departments-covered',
+        label: 'Départements couverts',
+        value: '12',
+        trend: 'Échantillon',
+        description: 'Nombre de départements présents dans le jeu de données chargé.',
       },
     ],
     mapSection: {
@@ -161,4 +161,61 @@ export const mockObservatoryContent: ObservatoryContent = {
       },
     ],
   },
+}
+
+export const mockDvfSummary: DvfSummary = {
+  generatedAt: '2026-05-30T00:00:00Z',
+  sourceFile: 'data/raw/dvf_sample.csv',
+  filters: {
+    mutationTypes: ['Vente'],
+    residentialTypes: ['Maison', 'Appartement'],
+  },
+  totalSalesCount: 842,
+  medianPricePerSquareMeter: 3420,
+  medianSurface: 71,
+  salesCountByDepartment: {
+    '13': 210,
+    '33': 126,
+    '59': 184,
+    '69': 176,
+    '75': 146,
+  },
+  medianPricePerSquareMeterByDepartment: {
+    '13': 3530,
+    '33': 3210,
+    '59': 2480,
+    '69': 4280,
+    '75': 10850,
+  },
+  medianPricePerSquareMeterByPropertyType: {
+    Appartement: 4180,
+    Maison: 2870,
+  },
+  departments: [
+    {
+      departmentCode: '13',
+      salesCount: 210,
+      medianPricePerSquareMeter: 3530,
+    },
+    {
+      departmentCode: '33',
+      salesCount: 126,
+      medianPricePerSquareMeter: 3210,
+    },
+    {
+      departmentCode: '59',
+      salesCount: 184,
+      medianPricePerSquareMeter: 2480,
+    },
+    {
+      departmentCode: '69',
+      salesCount: 176,
+      medianPricePerSquareMeter: 4280,
+    },
+    {
+      departmentCode: '75',
+      salesCount: 146,
+      medianPricePerSquareMeter: 10850,
+    },
+  ],
 }

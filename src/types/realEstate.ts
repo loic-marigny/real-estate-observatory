@@ -81,6 +81,28 @@ export type DataPipelinePageContent = {
   steps: PipelineStep[]
 }
 
+export type DvfDepartmentSummary = {
+  departmentCode: string
+  salesCount: number
+  medianPricePerSquareMeter: number | null
+}
+
+export type DvfSummary = {
+  generatedAt: string
+  sourceFile: string
+  filters: {
+    mutationTypes: string[]
+    residentialTypes: string[]
+  }
+  totalSalesCount: number
+  medianPricePerSquareMeter: number | null
+  medianSurface: number | null
+  salesCountByDepartment: Record<string, number>
+  medianPricePerSquareMeterByDepartment: Record<string, number | null>
+  medianPricePerSquareMeterByPropertyType: Record<string, number | null>
+  departments: DvfDepartmentSummary[]
+}
+
 export type ObservatoryContent = {
   home: HomePageContent
   explorer: ExplorerPageContent
