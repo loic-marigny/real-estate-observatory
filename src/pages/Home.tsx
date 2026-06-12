@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { startTransition, useEffect, useState } from 'react'
+import { DepartmentChoropleth } from '../components/DepartmentChoropleth'
 import { MetricCard } from '../components/MetricCard'
 import { getDvfSummary } from '../services/dvfService'
 import type {
@@ -74,6 +75,7 @@ export function Home({
   sources,
 }: HomeProps) {
   const [displayMetrics, setDisplayMetrics] = useState<Metric[]>(metrics)
+  const [dvfSummary, setDvfSummary] = useState<DvfSummary | null>(null)
 
   useEffect(() => {
     let isMounted = true
@@ -86,10 +88,16 @@ export function Home({
           return
         }
 
-        setDisplayMetrics(buildMetricsFromDvfSummary(summary))
+        startTransition(() => {
+          setDvfSummary(summary)
+          setDisplayMetrics(buildMetricsFromDvfSummary(summary))
+        })
       } catch {
         if (isMounted) {
-          setDisplayMetrics(metrics)
+          startTransition(() => {
+            setDvfSummary(null)
+            setDisplayMetrics(metrics)
+          })
         }
       }
     }
@@ -125,14 +133,13 @@ export function Home({
       </section>
 
       <section className="content-grid">
-        <article className="panel panel--placeholder">
+        <article className="panel panel--map">
           <div className="section-heading">
             <p className="eyebrow">{mapSection.eyebrow}</p>
             <h2>{mapSection.title}</h2>
           </div>
-          <div className="placeholder-block placeholder-block--map">
-            {mapSection.description}
-          </div>
+          <p className="panel__lede">{mapSection.description}</p>
+          <DepartmentChoropleth departments={dvfSummary?.departments ?? []} />
         </article>
 
         <article className="panel panel--placeholder">

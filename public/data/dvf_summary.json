@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-12T10:26:19.425865+00:00",
-  "source_file": "data/raw/dvf_full.csv",
+  "generated_at": "2026-06-12T10:37:48.097042+00:00",
+  "source_file": "data/silver/dvf_silver.parquet",
   "filters": {
     "nature_mutation": "Vente",
     "property_types": [
@@ -705,13 +705,5 @@
       "sales_count": 5687,
       "median_price_m2": 2982.76
     }
-  ],
-  "quality_report": {
-    "rows_read": 3714829,
-    "rows_kept": 1062501,
-    "filtered_non_sales": 200793,
-    "filtered_non_residential": 2392471,
-    "filtered_invalid_values": 10282,
-    "filtered_outliers": 48782
-  }
+  ]
 }

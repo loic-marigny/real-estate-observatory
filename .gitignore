@@ -25,6 +25,9 @@ dist-ssr
 
 # Local raw data
 data/raw/
+data/bronze/
+data/silver/
+data/gold/
 *.csv
 *.txt
 *.zip
@@ -32,3 +35,6 @@ data/raw/
 
 # Keep folder structure
 !data/raw/.gitkeep
+!data/bronze/.gitkeep
+!data/silver/.gitkeep
+!data/gold/.gitkeep
