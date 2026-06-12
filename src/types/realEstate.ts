@@ -103,6 +103,37 @@ export type DvfSummary = {
   departments: DvfDepartmentSummary[]
 }
 
+export type FilosofiDecileSummary = Partial<{
+  d1Income: number | null
+  d2Income: number | null
+  d3Income: number | null
+  d4Income: number | null
+  d5Income: number | null
+  d6Income: number | null
+  d7Income: number | null
+  d8Income: number | null
+  d9Income: number | null
+}>
+
+export type FilosofiPovertyRateSummary = {
+  mean: number | null
+  median: number | null
+}
+
+export type FilosofiSummary = {
+  source: string
+  generatedAt: string
+  availableYears: number[]
+  latestYear: number | null
+  communesCovered: number
+  departmentsCovered: number
+  nationalMedianIncome: number | null
+  medianIncomeByDepartment: Record<string, number | null>
+  decileSummary: FilosofiDecileSummary | null
+  povertyRateSummary: FilosofiPovertyRateSummary | null
+  notes: string[]
+}
+
 export type ObservatoryContent = {
   home: HomePageContent
   explorer: ExplorerPageContent

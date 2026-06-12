@@ -4,15 +4,15 @@ This directory contains the local DVF ingestion pipeline and ignored intermediat
 
 ## Architecture
 
-The DVF flow now follows a `bronze / silver / gold` layout:
+The data flows now follow a `bronze / silver / gold` layout:
 
-- `data/raw/`: downloaded source archives from the official DVF publication.
-- `data/bronze/`: Parquet copy of the raw DVF file with original columns preserved.
-- `data/silver/`: cleaned Parquet dataset restricted to residential sales and enriched with `price_m2`.
-- `data/gold/`: aggregated Parquet indicators ready for downstream consumption.
-- `public/data/dvf_summary.json`: frontend-facing JSON exported from the gold layer.
+- `data/raw/`: downloaded source archives from official DVF and FiLoSoFi publications.
+- `data/bronze/`: Parquet copies of raw source files with original columns preserved plus source metadata.
+- `data/silver/`: cleaned and standardized datasets ready for analytical joins.
+- `data/gold/`: aggregated indicators ready for downstream consumption.
+- `public/data/*.json`: frontend-facing JSON summaries exported from gold layers.
 
-All local raw and intermediate data folders are ignored by Git. The repository keeps only the folder structure.
+All local raw and intermediate data folders are ignored by Git. This includes raw ZIP, CSV, TXT, XLS, XLSX files and processed parquet outputs. The repository keeps only the folder structure.
 
 ## Scripts
 
@@ -35,6 +35,30 @@ python data/scripts/download_filosofi.py --force
 ```
 
 The FiLoSoFi downloader queries the official `data.gouv.fr` dataset API, inspects the `resources` array, prefers resources titled `Revenus et pauvreté des ménages`, prioritizes CSV-capable resources when available, falls back to the resource `url` when `latest` is absent, and saves the selected raw file into `data/raw/`.
+
+Build the FiLoSoFi bronze layer:
+
+```bash
+python data/scripts/build_filosofi_bronze.py
+```
+
+FiLoSoFi bronze scans `data/raw/` for files containing `filosofi`, supports ZIP/CSV/TXT/XLS/XLSX sources, reads relevant tabular content directly from ZIP archives when needed, preserves original columns, and writes `data/bronze/filosofi_bronze.parquet`.
+
+Build the FiLoSoFi silver layer:
+
+```bash
+python data/scripts/build_filosofi_silver.py
+```
+
+FiLoSoFi silver standardizes commune-level indicators such as `commune_code`, `department_code`, `median_income`, deciles, poverty rate, tax households, population, and `year`, then writes `data/silver/filosofi_silver.parquet`.
+
+Build the FiLoSoFi gold layer:
+
+```bash
+python data/scripts/build_filosofi_gold.py
+```
+
+FiLoSoFi gold produces `data/gold/filosofi_commune_indicators.parquet` and exports `public/data/filosofi_summary.json` for frontend consumption.
 
 Build the bronze layer:
 
@@ -74,12 +98,25 @@ This legacy entrypoint now runs the full `bronze -> silver -> gold` pipeline.
 2. `download_filosofi.py` selects the latest relevant FiLoSoFi resource from official dataset metadata and saves it into `data/raw/`.
 3. `build_bronze.py` converts the raw DVF archive into `data/bronze/dvf_bronze.parquet` without altering the original columns.
 4. `build_silver.py` produces `data/silver/dvf_silver.parquet` with cleaned residential sales and derived `price_m2`.
-5. `build_gold.py` creates gold-level parquet indicators and exports `public/data/dvf_summary.json`.
-6. The frontend continues to read `/data/dvf_summary.json`; no frontend contract changes are required.
+5. `build_gold.py` creates DVF gold-level parquet indicators and exports `public/data/dvf_summary.json`.
+6. `build_filosofi_bronze.py` converts raw FiLoSoFi files into `data/bronze/filosofi_bronze.parquet`.
+7. `build_filosofi_silver.py` standardizes commune-level FiLoSoFi indicators into `data/silver/filosofi_silver.parquet`.
+8. `build_filosofi_gold.py` creates FiLoSoFi commune indicators and exports `public/data/filosofi_summary.json`.
+9. The frontend reads JSON summaries from `public/data/`; no backend is required.
+
+## Future Join
+
+The future join between DVF and FiLoSoFi should use:
+
+- DVF: `commune_code` + transaction year
+- FiLoSoFi: `commune_code` + income year
+
+The FiLoSoFi pipeline is designed so several years can be added later as new raw files are downloaded. A `year` column is inferred whenever possible from the raw filename, archive filename, or extracted file name.
 
 ## Notes
 
 - `download_dvf.py` uses configurable constants at the top of the file so the upstream source can be replaced later.
 - `download_filosofi.py` relies on `data.gouv.fr` dataset metadata instead of a hard-coded FiLoSoFi file URL.
+- FiLoSoFi ZIP archives are read without committing extracted working files; unnecessary archive members are ignored instead of being kept locally.
 - The parquet writers rely on `pandas` with the `pyarrow` engine available in the local Python environment.
 - `prepare_dvf_sample.py` is kept only for backward compatibility with the previous workflow.

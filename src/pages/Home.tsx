@@ -2,8 +2,10 @@ import { startTransition, useEffect, useState } from 'react'
 import { DepartmentChoropleth } from '../components/DepartmentChoropleth'
 import { MetricCard } from '../components/MetricCard'
 import { getDvfSummary } from '../services/dvfService'
+import { getFilosofiSummary } from '../services/filosofiService'
 import type {
   DvfSummary,
+  FilosofiSummary,
   HomeHero,
   Metric,
   PlaceholderSection,
@@ -27,6 +29,14 @@ const formatSurface = (value: number): string => `${formatInteger(value)} m²`
 
 const formatCurrencyPerSquareMeter = (value: number): string =>
   `${formatInteger(value)} €`
+
+const formatEuro = (value: number): string => `${formatInteger(value)} €`
+
+const formatPercentage = (value: number): string =>
+  `${new Intl.NumberFormat('fr-FR', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(value)} %`
 
 const buildMetricsFromDvfSummary = (summary: DvfSummary): Metric[] => [
   {
@@ -76,6 +86,7 @@ export function Home({
 }: HomeProps) {
   const [displayMetrics, setDisplayMetrics] = useState<Metric[]>(metrics)
   const [dvfSummary, setDvfSummary] = useState<DvfSummary | null>(null)
+  const [filosofiSummary, setFilosofiSummary] = useState<FilosofiSummary | null>(null)
 
   useEffect(() => {
     let isMounted = true
@@ -109,6 +120,28 @@ export function Home({
     }
   }, [metrics])
 
+  useEffect(() => {
+    let isMounted = true
+
+    const loadFilosofiSummary = async () => {
+      const summary = await getFilosofiSummary()
+
+      if (!isMounted) {
+        return
+      }
+
+      startTransition(() => {
+        setFilosofiSummary(summary)
+      })
+    }
+
+    void loadFilosofiSummary()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
   return (
     <div className="page">
       <section className="hero-panel">
@@ -131,6 +164,70 @@ export function Home({
           ))}
         </div>
       </section>
+
+      {filosofiSummary ? (
+        <section className="panel panel--compact" aria-labelledby="filosofi-title">
+          <div className="section-heading">
+            <p className="eyebrow">FiLoSoFi</p>
+            <h2 id="filosofi-title">Revenus localisés</h2>
+          </div>
+          <div className="mini-stats-grid">
+            <article className="mini-stat-card">
+              <span className="mini-stat-card__label">Dernier millésime</span>
+              <strong className="mini-stat-card__value">
+                {filosofiSummary.latestYear ?? 'N/A'}
+              </strong>
+            </article>
+            <article className="mini-stat-card">
+              <span className="mini-stat-card__label">Communes couvertes</span>
+              <strong className="mini-stat-card__value">
+                {formatInteger(filosofiSummary.communesCovered)}
+              </strong>
+            </article>
+            <article className="mini-stat-card">
+              <span className="mini-stat-card__label">Revenu médian national</span>
+              <strong className="mini-stat-card__value">
+                {filosofiSummary.nationalMedianIncome !== null
+                  ? formatEuro(filosofiSummary.nationalMedianIncome)
+                  : 'N/A'}
+              </strong>
+            </article>
+            <article className="mini-stat-card">
+              <span className="mini-stat-card__label">Déciles D1 / D5 / D9</span>
+              <strong className="mini-stat-card__value mini-stat-card__value--stacked">
+                <span>
+                  D1{' '}
+                  {filosofiSummary.decileSummary?.d1Income !== null &&
+                  filosofiSummary.decileSummary?.d1Income !== undefined
+                    ? formatEuro(filosofiSummary.decileSummary.d1Income)
+                    : 'N/A'}
+                </span>
+                <span>
+                  D5{' '}
+                  {filosofiSummary.decileSummary?.d5Income !== null &&
+                  filosofiSummary.decileSummary?.d5Income !== undefined
+                    ? formatEuro(filosofiSummary.decileSummary.d5Income)
+                    : 'N/A'}
+                </span>
+                <span>
+                  D9{' '}
+                  {filosofiSummary.decileSummary?.d9Income !== null &&
+                  filosofiSummary.decileSummary?.d9Income !== undefined
+                    ? formatEuro(filosofiSummary.decileSummary.d9Income)
+                    : 'N/A'}
+                </span>
+              </strong>
+            </article>
+          </div>
+          {filosofiSummary.povertyRateSummary?.mean !== null &&
+          filosofiSummary.povertyRateSummary?.mean !== undefined ? (
+            <p className="panel__footnote">
+              Taux de pauvreté moyen disponible pour le dernier millésime :{' '}
+              {formatPercentage(filosofiSummary.povertyRateSummary.mean)}.
+            </p>
+          ) : null}
+        </section>
+      ) : null}
 
       <section className="content-grid">
         <article className="panel panel--map">
