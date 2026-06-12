@@ -1,3 +1,4 @@
+import argparse
 import json
 from datetime import date, datetime
 from pathlib import Path
@@ -29,6 +30,20 @@ DATASETS = {
 
 def log(message: str) -> None:
     print(f"[build_public_previews] {message}")
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Build lightweight public JSON previews from processed datasets.",
+    )
+    parser.add_argument(
+        "--dataset",
+        choices=sorted(DATASETS.keys()),
+        action="append",
+        dest="datasets",
+        help="Limit preview generation to one or more dataset ids.",
+    )
+    return parser.parse_args()
 
 
 def normalize_scalar(value):
@@ -114,7 +129,11 @@ def build_preview(dataset_id: str, config: dict[str, object]) -> None:
 
 
 def main() -> None:
-    for dataset_id, config in DATASETS.items():
+    args = parse_args()
+    selected_datasets = args.datasets or list(DATASETS.keys())
+
+    for dataset_id in selected_datasets:
+        config = DATASETS[dataset_id]
         build_preview(dataset_id, config)
 
 

@@ -41,7 +41,7 @@ jobs:
 
       - name: Build public preview files
         run: |
-          python data/scripts/build_public_previews.py
+          python data/scripts/build_public_previews.py --dataset dvf
 
       - name: Upload DVF national parquet to R2
         env:
