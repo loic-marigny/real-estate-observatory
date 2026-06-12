@@ -7,7 +7,9 @@ from pathlib import Path
 from typing import Iterable
 
 import boto3
+from boto3.exceptions import S3UploadFailedError
 from botocore.client import BaseClient
+from botocore.exceptions import ClientError
 
 
 REQUIRED_ENV_VARS = (
@@ -112,10 +114,35 @@ def upload_file(client: BaseClient, bucket_name: str, local_path: Path, remote_k
         extra_args["ContentType"] = guessed_type
 
     log(f"Uploading {local_path} -> s3://{bucket_name}/{remote_key}")
-    if extra_args:
-        client.upload_file(str(local_path), bucket_name, remote_key, ExtraArgs=extra_args)
-    else:
-        client.upload_file(str(local_path), bucket_name, remote_key)
+    try:
+        if extra_args:
+            client.upload_file(str(local_path), bucket_name, remote_key, ExtraArgs=extra_args)
+        else:
+            client.upload_file(str(local_path), bucket_name, remote_key)
+    except ClientError as error:
+        error_code = error.response.get("Error", {}).get("Code", "Unknown")
+        error_message = error.response.get("Error", {}).get("Message", str(error))
+        raise SystemExit(
+            "\n".join(
+                [
+                    f"R2 upload failed for s3://{bucket_name}/{remote_key}",
+                    f"Cloudflare R2 returned: {error_code} - {error_message}",
+                    "Check that:",
+                    f"- R2_BUCKET_NAME matches an existing bucket: {bucket_name}",
+                    "- R2_ENDPOINT_URL targets the same Cloudflare account as the bucket",
+                    "- R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY have write permission on that bucket",
+                ]
+            )
+        ) from error
+    except S3UploadFailedError as error:
+        raise SystemExit(
+            "\n".join(
+                [
+                    f"R2 upload failed for s3://{bucket_name}/{remote_key}",
+                    str(error),
+                ]
+            )
+        ) from error
 
 
 def main() -> None:
