@@ -6,84 +6,10 @@ on:
     - cron: "0 4 * * 1"
 
 jobs:
-  dvf-pipeline:
-    runs-on: ubuntu-latest
+  dvf:
+    uses: ./.github/workflows/dvf-pipeline.yml
+    secrets: inherit
 
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Download DVF raw archive
-        run: |
-          python data/scripts/download_dvf.py
-
-      - name: Build DVF bronze layer
-        run: |
-          python data/scripts/build_bronze.py
-
-      - name: Build DVF silver layer
-        run: |
-          python data/scripts/build_silver.py
-
-      - name: Build DVF gold layer
-        run: |
-          python data/scripts/build_gold.py
-
-      - name: Build public preview files
-        run: |
-          python data/scripts/build_public_previews.py --dataset dvf
-
-      - name: Upload DVF national parquet to R2
-        env:
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
-          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
-        run: |
-          python scripts/r2_upload.py --local data/gold/dvf_national.parquet --remote-prefix gold
-
-      - name: Upload DVF by-department parquet to R2
-        env:
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
-          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
-        run: |
-          python scripts/r2_upload.py --local data/gold/dvf_by_department.parquet --remote-prefix gold
-
-      - name: Upload DVF by-property-type parquet to R2
-        env:
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
-          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
-        run: |
-          python scripts/r2_upload.py --local data/gold/dvf_by_property_type.parquet --remote-prefix gold
-
-      - name: Upload DVF summary JSON to R2
-        env:
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
-          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
-        run: |
-          python scripts/r2_upload.py --local public/data/dvf_summary.json --remote-prefix public/data
-
-      - name: Upload DVF preview JSON to R2
-        env:
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
-          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
-        run: |
-          python scripts/r2_upload.py --local public/data/dvf_preview.json --remote-prefix public/data
+  filosofi:
+    uses: ./.github/workflows/filosofi-pipeline.yml
+    secrets: inherit
