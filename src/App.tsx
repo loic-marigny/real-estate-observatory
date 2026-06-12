@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactElement } from 'react'
 import { Layout } from './components/Layout'
 import { getObservatoryContent } from './services/realEstateContent'
 import { DataPipeline } from './pages/DataPipeline'
+import { DataExplorer } from './pages/DataExplorer'
 import { Explorer } from './pages/Explorer'
 import { Home } from './pages/Home'
 import { Methodology } from './pages/Methodology'
@@ -28,6 +29,11 @@ const PAGE_DEFINITIONS: Record<PageKey, PageDefinition> = {
     key: 'explorer',
     label: 'Explorer',
     render: (): ReactElement => <Explorer content={observatoryContent.explorer} />,
+  },
+  'data-explorer': {
+    key: 'data-explorer',
+    label: 'Data Explorer',
+    render: (): ReactElement => <DataExplorer />,
   },
   methodology: {
     key: 'methodology',

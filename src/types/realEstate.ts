@@ -1,6 +1,11 @@
 import type { ReactElement } from 'react'
 
-export type PageKey = 'home' | 'explorer' | 'methodology' | 'pipeline'
+export type PageKey =
+  | 'home'
+  | 'explorer'
+  | 'data-explorer'
+  | 'methodology'
+  | 'pipeline'
 
 export type NavigationItem = {
   key: PageKey
