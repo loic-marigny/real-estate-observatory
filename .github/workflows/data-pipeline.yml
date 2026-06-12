@@ -6,7 +6,7 @@ on:
     - cron: "0 4 * * 1"
 
 jobs:
-  r2-upload-test:
+  dvf-pipeline:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,16 +23,67 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Create test artifact
+      - name: Download DVF raw archive
         run: |
-          mkdir -p data_test/gold
-          printf "cloudflare r2 test\n" > data_test/gold/test.txt
+          python data/scripts/download_dvf.py
 
-      - name: Upload test artifact to R2
+      - name: Build DVF bronze layer
+        run: |
+          python data/scripts/build_bronze.py
+
+      - name: Build DVF silver layer
+        run: |
+          python data/scripts/build_silver.py
+
+      - name: Build DVF gold layer
+        run: |
+          python data/scripts/build_gold.py
+
+      - name: Build public preview files
+        run: |
+          python data/scripts/build_public_previews.py
+
+      - name: Upload DVF national parquet to R2
         env:
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
         run: |
-          python scripts/r2_upload.py --local data_test/gold --remote-prefix gold
+          python scripts/r2_upload.py --local data/gold/dvf_national.parquet --remote-prefix gold
+
+      - name: Upload DVF by-department parquet to R2
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        run: |
+          python scripts/r2_upload.py --local data/gold/dvf_by_department.parquet --remote-prefix gold
+
+      - name: Upload DVF by-property-type parquet to R2
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        run: |
+          python scripts/r2_upload.py --local data/gold/dvf_by_property_type.parquet --remote-prefix gold
+
+      - name: Upload DVF summary JSON to R2
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        run: |
+          python scripts/r2_upload.py --local public/data/dvf_summary.json --remote-prefix public/data
+
+      - name: Upload DVF preview JSON to R2
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        run: |
+          python scripts/r2_upload.py --local public/data/dvf_preview.json --remote-prefix public/data
