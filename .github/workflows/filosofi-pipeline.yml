@@ -22,43 +22,27 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Download FiLoSoFi raw archive
+      - name: Build configured FiLoSoFi years
         run: |
-          python data/scripts/download_filosofi.py
+          python scripts/build_filosofi.py --all-configured
 
-      - name: Build FiLoSoFi bronze layer
-        run: |
-          python data/scripts/build_filosofi_bronze.py
-
-      - name: Build FiLoSoFi silver layer
-        run: |
-          python data/scripts/build_filosofi_silver.py
-
-      - name: Build FiLoSoFi gold layer
-        run: |
-          python data/scripts/build_filosofi_gold.py
-
-      - name: Build FiLoSoFi public preview
-        run: |
-          python data/scripts/build_public_previews.py --dataset filosofi
-
-      - name: Upload FiLoSoFi commune indicators parquet to R2
+      - name: Upload FiLoSoFi silver artifacts to R2
         env:
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
         run: |
-          python scripts/r2_upload.py --local data/gold/filosofi_commune_indicators.parquet --remote-prefix gold
+          python scripts/r2_upload.py --local data/silver/filosofi --remote-prefix silver/filosofi
 
-      - name: Upload FiLoSoFi department indicators parquet to R2
+      - name: Upload FiLoSoFi gold artifacts to R2
         env:
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
         run: |
-          python scripts/r2_upload.py --local data/gold/filosofi_department_indicators.parquet --remote-prefix gold
+          python scripts/r2_upload.py --local data/gold/filosofi --remote-prefix gold/filosofi
 
       - name: Upload FiLoSoFi summary JSON to R2
         env:
@@ -77,3 +61,9 @@ jobs:
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
         run: |
           python scripts/r2_upload.py --local public/data/filosofi_preview.json --remote-prefix public/data
+
+      - name: Upload FiLoSoFi gold artifact bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: filosofi-gold
+          path: data/gold/filosofi/**/*

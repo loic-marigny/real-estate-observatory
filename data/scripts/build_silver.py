@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 
 import pandas as pd
@@ -7,8 +8,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 
-INPUT_PARQUET_PATH = Path(__file__).resolve().parents[2] / "data" / "bronze" / "dvf_bronze.parquet"
-OUTPUT_PARQUET_PATH = Path(__file__).resolve().parents[2] / "data" / "silver" / "dvf_silver.parquet"
+ROOT_DIR = Path(__file__).resolve().parents[2]
 CHUNK_SIZE_ROWS = 200_000
 
 PROPERTY_TYPES = {"Maison", "Appartement"}
@@ -30,7 +30,21 @@ def log(message: str) -> None:
     print(f"[build_silver] {message}")
 
 
-def transform_chunk(chunk: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, int]]:
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Build the DVF silver dataset for one year.")
+    parser.add_argument("--year", type=int, required=True)
+    return parser.parse_args()
+
+
+def input_parquet_path(year: int) -> Path:
+    return ROOT_DIR / "data" / "bronze" / "dvf" / f"year={year}" / "dvf_bronze.parquet"
+
+
+def output_parquet_path(year: int) -> Path:
+    return ROOT_DIR / "data" / "silver" / "dvf" / f"year={year}" / "dvf_silver.parquet"
+
+
+def transform_chunk(chunk: pd.DataFrame, year: int) -> tuple[pd.DataFrame, dict[str, int]]:
     stats = {
         "rows_read": len(chunk),
         "filtered_non_sales": 0,
@@ -40,7 +54,7 @@ def transform_chunk(chunk: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, int]]:
     }
 
     filtered = chunk.copy()
-
+    filtered["year"] = year
     filtered = filtered[filtered["nature_mutation"].fillna("").str.strip() == "Vente"]
     stats["filtered_non_sales"] = stats["rows_read"] - len(filtered)
 
@@ -49,8 +63,7 @@ def transform_chunk(chunk: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, int]]:
     stats["filtered_non_residential"] = before_property_filter - len(filtered)
 
     for column in NUMERIC_COLUMNS:
-        filtered[column] = pd.to_numeric(filtered[column], errors="coerce")
-        filtered[column] = filtered[column].astype("float64")
+        filtered[column] = pd.to_numeric(filtered[column], errors="coerce").astype("float64")
 
     before_invalid_filter = len(filtered)
     filtered = filtered[
@@ -75,18 +88,17 @@ def transform_chunk(chunk: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, int]]:
 
 
 def main() -> None:
-    log("Preparing silver DVF dataset")
+    args = parse_args()
+    input_path = input_parquet_path(args.year)
+    output_path = output_parquet_path(args.year)
+    log(f"Preparing silver DVF dataset for year {args.year}")
 
-    if not INPUT_PARQUET_PATH.exists():
-        raise FileNotFoundError(
-            f"Missing bronze dataset: {INPUT_PARQUET_PATH}. "
-            "Run data/scripts/build_bronze.py first."
-        )
+    if not input_path.exists():
+        raise FileNotFoundError(f"Missing bronze dataset: {input_path}. Run data/scripts/build_bronze.py first.")
 
-    OUTPUT_PARQUET_PATH.parent.mkdir(parents=True, exist_ok=True)
-    temp_output_path = OUTPUT_PARQUET_PATH.with_suffix(".parquet.part")
-
-    parquet_file = pq.ParquetFile(INPUT_PARQUET_PATH)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    temp_output_path = output_path.with_suffix(".parquet.part")
+    parquet_file = pq.ParquetFile(input_path)
     writer: pq.ParquetWriter | None = None
     temp_output_path.unlink(missing_ok=True)
 
@@ -98,13 +110,12 @@ def main() -> None:
         "filtered_invalid_values": 0,
         "filtered_outliers": 0,
     }
-
     pipeline_error: Exception | None = None
 
     try:
         for batch_index, batch in enumerate(parquet_file.iter_batches(batch_size=CHUNK_SIZE_ROWS), start=1):
             chunk = batch.to_pandas()
-            filtered_chunk, stats = transform_chunk(chunk)
+            filtered_chunk, stats = transform_chunk(chunk, args.year)
 
             totals["rows_read"] += stats["rows_read"]
             totals["rows_kept"] += len(filtered_chunk)
@@ -118,10 +129,7 @@ def main() -> None:
                 writer = pq.ParquetWriter(temp_output_path, table.schema)
 
             writer.write_table(table)
-            log(
-                f"Processed batch {batch_index}: "
-                f"{len(filtered_chunk)} kept / {stats['rows_read']} read"
-            )
+            log(f"Processed batch {batch_index}: {len(filtered_chunk)} kept / {stats['rows_read']} read")
     except Exception as error:
         pipeline_error = error
     finally:
@@ -136,14 +144,9 @@ def main() -> None:
         temp_output_path.unlink(missing_ok=True)
         raise RuntimeError("No rows were written to the silver dataset")
 
-    temp_output_path.replace(OUTPUT_PARQUET_PATH)
-    log(f"Silver dataset written to {OUTPUT_PARQUET_PATH}")
-    log(f"Rows read: {totals['rows_read']}")
+    temp_output_path.replace(output_path)
+    log(f"Silver dataset written to {output_path}")
     log(f"Rows kept: {totals['rows_kept']}")
-    log(f"Filtered non-sales: {totals['filtered_non_sales']}")
-    log(f"Filtered non-residential: {totals['filtered_non_residential']}")
-    log(f"Filtered invalid rows: {totals['filtered_invalid_values']}")
-    log(f"Filtered outliers: {totals['filtered_outliers']}")
 
 
 if __name__ == "__main__":

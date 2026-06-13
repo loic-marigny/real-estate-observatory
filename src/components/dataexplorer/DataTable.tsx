@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { DatasetColumn } from '../../services/dataExplorerService'
 import { SearchBar } from './SearchBar'
 
@@ -15,7 +15,7 @@ type DataTableProps = {
   rows: Array<Record<string, unknown>>
 }
 
-const PAGE_SIZE_OPTIONS = [50, 100, 200]
+const PAGE_SIZE_OPTIONS = [20, 50, 100, 200]
 
 const isTextValue = (value: unknown): boolean =>
   typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
@@ -36,8 +36,11 @@ const parseNumericFilter = (value: string): number | null => {
 }
 
 export function DataTable({ columns, rows }: DataTableProps) {
+  const topScrollRef = useRef<HTMLDivElement | null>(null)
+  const topScrollInnerRef = useRef<HTMLDivElement | null>(null)
+  const tableScrollRef = useRef<HTMLDivElement | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [pageSize, setPageSize] = useState(50)
+  const [pageSize, setPageSize] = useState(20)
   const [page, setPage] = useState(1)
   const [sortColumn, setSortColumn] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
@@ -129,15 +132,61 @@ export function DataTable({ columns, rows }: DataTableProps) {
   const safePage = Math.min(page, totalPages)
   const paginatedRows = sortedRows.slice((safePage - 1) * pageSize, safePage * pageSize)
 
-  const handleSort = (columnKey: string) => {
-    setPage(1)
-    if (sortColumn === columnKey) {
-      setSortDirection((direction) => (direction === 'asc' ? 'desc' : 'asc'))
+  useEffect(() => {
+    const topScroll = topScrollRef.current
+    const topScrollInner = topScrollInnerRef.current
+    const tableScroll = tableScrollRef.current
+    if (!topScroll || !topScrollInner || !tableScroll) {
       return
     }
 
+    let isSyncingTop = false
+    let isSyncingBottom = false
+
+    const syncWidths = () => {
+      const table = tableScroll.querySelector('table')
+      if (!table) {
+        return
+      }
+      topScrollInner.style.width = `${table.scrollWidth}px`
+    }
+
+    const handleTopScroll = () => {
+      if (isSyncingBottom) {
+        isSyncingBottom = false
+        return
+      }
+      isSyncingTop = true
+      tableScroll.scrollLeft = topScroll.scrollLeft
+    }
+
+    const handleTableScroll = () => {
+      if (isSyncingTop) {
+        isSyncingTop = false
+        return
+      }
+      isSyncingBottom = true
+      topScroll.scrollLeft = tableScroll.scrollLeft
+    }
+
+    syncWidths()
+    topScroll.scrollLeft = tableScroll.scrollLeft
+
+    topScroll.addEventListener('scroll', handleTopScroll)
+    tableScroll.addEventListener('scroll', handleTableScroll)
+    window.addEventListener('resize', syncWidths)
+
+    return () => {
+      topScroll.removeEventListener('scroll', handleTopScroll)
+      tableScroll.removeEventListener('scroll', handleTableScroll)
+      window.removeEventListener('resize', syncWidths)
+    }
+  }, [columns, paginatedRows])
+
+  const handleSort = (columnKey: string, direction: SortDirection) => {
+    setPage(1)
     setSortColumn(columnKey)
-    setSortDirection('asc')
+    setSortDirection(direction)
   }
 
   const updateFilter = (
@@ -186,22 +235,51 @@ export function DataTable({ columns, rows }: DataTableProps) {
         </label>
       </div>
 
-      <div className="data-table-wrapper">
+      <div
+        ref={topScrollRef}
+        className="data-table-top-scroll"
+        aria-label="Défilement horizontal du tableau"
+      >
+        <div ref={topScrollInnerRef} className="data-table-top-scroll__inner" />
+      </div>
+
+      <div ref={tableScrollRef} className="data-table-wrapper">
         <table className="data-table">
           <thead>
             <tr>
               {columns.map((column) => (
                 <th key={column.key}>
-                  <button
-                    type="button"
-                    className="data-table__sort"
-                    onClick={() => handleSort(column.key)}
-                  >
-                    <span>{column.label}</span>
-                    {sortColumn === column.key ? (
-                      <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                    ) : null}
-                  </button>
+                  <div className="data-table__header">
+                    <span className="data-table__header-label">{column.label}</span>
+                    <div className="data-table__sort-actions">
+                      <button
+                        type="button"
+                        className={`data-table__sort-button${
+                          sortColumn === column.key && sortDirection === 'asc'
+                            ? ' data-table__sort-button--active'
+                            : ''
+                        }`}
+                        onClick={() => handleSort(column.key, 'asc')}
+                        aria-label={`Trier ${column.label} par ordre croissant`}
+                        title="Tri croissant"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        className={`data-table__sort-button${
+                          sortColumn === column.key && sortDirection === 'desc'
+                            ? ' data-table__sort-button--active'
+                            : ''
+                        }`}
+                        onClick={() => handleSort(column.key, 'desc')}
+                        aria-label={`Trier ${column.label} par ordre décroissant`}
+                        title="Tri décroissant"
+                      >
+                        ↓
+                      </button>
+                    </div>
+                  </div>
                 </th>
               ))}
             </tr>

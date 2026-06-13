@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 
 import pandas as pd
@@ -7,8 +8,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 
-INPUT_ARCHIVE_PATH = Path(__file__).resolve().parents[2] / "data" / "raw" / "dvf_latest.csv.gz"
-OUTPUT_PARQUET_PATH = Path(__file__).resolve().parents[2] / "data" / "bronze" / "dvf_bronze.parquet"
+ROOT_DIR = Path(__file__).resolve().parents[2]
 CHUNK_SIZE_ROWS = 200_000
 
 
@@ -16,17 +16,31 @@ def log(message: str) -> None:
     print(f"[build_bronze] {message}")
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Build the DVF bronze dataset for one year.")
+    parser.add_argument("--year", type=int, required=True)
+    return parser.parse_args()
+
+
+def input_archive_path(year: int) -> Path:
+    return ROOT_DIR / "data" / "raw" / "dvf" / f"year={year}" / "full.csv.gz"
+
+
+def output_parquet_path(year: int) -> Path:
+    return ROOT_DIR / "data" / "bronze" / "dvf" / f"year={year}" / "dvf_bronze.parquet"
+
+
 def main() -> None:
-    log("Preparing bronze DVF dataset")
+    args = parse_args()
+    input_path = input_archive_path(args.year)
+    output_path = output_parquet_path(args.year)
+    log(f"Preparing bronze DVF dataset for year {args.year}")
 
-    if not INPUT_ARCHIVE_PATH.exists():
-        raise FileNotFoundError(
-            f"Missing input archive: {INPUT_ARCHIVE_PATH}. "
-            "Run data/scripts/download_dvf.py first."
-        )
+    if not input_path.exists():
+        raise FileNotFoundError(f"Missing input archive: {input_path}. Run data/scripts/download_dvf.py first.")
 
-    OUTPUT_PARQUET_PATH.parent.mkdir(parents=True, exist_ok=True)
-    temp_output_path = OUTPUT_PARQUET_PATH.with_suffix(".parquet.part")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    temp_output_path = output_path.with_suffix(".parquet.part")
     temp_output_path.unlink(missing_ok=True)
 
     total_rows = 0
@@ -35,7 +49,7 @@ def main() -> None:
 
     try:
         chunk_iterator = pd.read_csv(
-            INPUT_ARCHIVE_PATH,
+            input_path,
             compression="gzip",
             dtype=str,
             keep_default_na=False,
@@ -44,6 +58,7 @@ def main() -> None:
         )
 
         for chunk_index, chunk in enumerate(chunk_iterator, start=1):
+            chunk["year"] = args.year
             table = pa.Table.from_pandas(chunk, preserve_index=False)
             if writer is None:
                 writer = pq.ParquetWriter(temp_output_path, table.schema)
@@ -65,8 +80,8 @@ def main() -> None:
         temp_output_path.unlink(missing_ok=True)
         raise RuntimeError("No rows were written to the bronze dataset")
 
-    temp_output_path.replace(OUTPUT_PARQUET_PATH)
-    log(f"Bronze dataset written to {OUTPUT_PARQUET_PATH}")
+    temp_output_path.replace(output_path)
+    log(f"Bronze dataset written to {output_path}")
     log(f"Rows written: {total_rows}")
 
 

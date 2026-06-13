@@ -28,6 +28,7 @@ data/raw/
 data/bronze/
 data/silver/
 data/gold/
+config/*.local.json
 *.csv
 *.txt
 *.zip

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from build_bronze import main as build_bronze_main
-from build_gold import main as build_gold_main
-from build_silver import main as build_silver_main
+import subprocess
+import sys
+from pathlib import Path
 
 
 def log(message: str) -> None:
@@ -11,10 +11,9 @@ def log(message: str) -> None:
 
 def main() -> None:
     log("prepare_dvf_sample.py is now a compatibility wrapper")
-    log("Running bronze -> silver -> gold DVF pipeline")
-    build_bronze_main()
-    build_silver_main()
-    build_gold_main()
+    log("Running scripts/build_dvf.py for year 2024")
+    root_dir = Path(__file__).resolve().parents[2]
+    subprocess.run([sys.executable, "scripts/build_dvf.py", "--year", "2024"], cwd=root_dir, check=True)
 
 
 if __name__ == "__main__":

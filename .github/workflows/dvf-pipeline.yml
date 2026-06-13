@@ -22,52 +22,27 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Download DVF raw archive
+      - name: Build configured DVF years
         run: |
-          python data/scripts/download_dvf.py
+          python scripts/build_dvf.py --all-configured
 
-      - name: Build DVF bronze layer
-        run: |
-          python data/scripts/build_bronze.py
-
-      - name: Build DVF silver layer
-        run: |
-          python data/scripts/build_silver.py
-
-      - name: Build DVF gold layer
-        run: |
-          python data/scripts/build_gold.py
-
-      - name: Build DVF public preview
-        run: |
-          python data/scripts/build_public_previews.py --dataset dvf
-
-      - name: Upload DVF national parquet to R2
+      - name: Upload DVF silver artifacts to R2
         env:
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
         run: |
-          python scripts/r2_upload.py --local data/gold/dvf_national.parquet --remote-prefix gold
+          python scripts/r2_upload.py --local data/silver/dvf --remote-prefix silver/dvf
 
-      - name: Upload DVF by-department parquet to R2
+      - name: Upload DVF gold artifacts to R2
         env:
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
         run: |
-          python scripts/r2_upload.py --local data/gold/dvf_by_department.parquet --remote-prefix gold
-
-      - name: Upload DVF by-property-type parquet to R2
-        env:
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
-          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
-        run: |
-          python scripts/r2_upload.py --local data/gold/dvf_by_property_type.parquet --remote-prefix gold
+          python scripts/r2_upload.py --local data/gold/dvf --remote-prefix gold/dvf
 
       - name: Upload DVF summary JSON to R2
         env:
@@ -86,3 +61,9 @@ jobs:
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
         run: |
           python scripts/r2_upload.py --local public/data/dvf_preview.json --remote-prefix public/data
+
+      - name: Upload DVF gold artifact bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: dvf-gold
+          path: data/gold/dvf/**/*
