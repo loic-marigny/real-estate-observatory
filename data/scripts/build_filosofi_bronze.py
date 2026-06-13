@@ -141,7 +141,7 @@ def rank_archive_member(member_name: str) -> tuple[int, int, int, int]:
     )
 
 
-def select_archive_member(archive: zipfile.ZipFile, source_path: Path) -> str:
+def select_archive_members(archive: zipfile.ZipFile, source_path: Path) -> list[str]:
     members = [
         name
         for name in archive.namelist()
@@ -150,35 +150,60 @@ def select_archive_member(archive: zipfile.ZipFile, source_path: Path) -> str:
     if not members:
         raise RuntimeError(f"No tabular FiLoSoFi files found in archive {source_path.name}")
 
-    selected = sorted(members, key=rank_archive_member, reverse=True)[0]
-    ignored = [name for name in members if name != selected]
+    ranked_members = sorted(members, key=rank_archive_member, reverse=True)
+    selected: list[str] = []
+    selected_levels: set[str] = set()
+    for member_name in ranked_members:
+        geography_level = infer_geography_level(member_name)
+        if geography_level not in {"commune", "department"}:
+            continue
+        if infer_file_role(member_name) != "data":
+            continue
+        if geography_level in selected_levels:
+            continue
+        selected.append(member_name)
+        selected_levels.add(geography_level)
+
+    if not selected:
+        selected = [ranked_members[0]]
+
+    ignored = [name for name in members if name not in selected]
     if ignored:
         log(f"Ignoring archive members from {source_path.name}: {', '.join(ignored)}")
     return selected
 
 
-def read_source_file(source_path: Path) -> pd.DataFrame:
+def build_frame_metadata(frame: pd.DataFrame, source_file: str, extracted_file: str, year: int | None) -> pd.DataFrame:
+    frame["source_file"] = source_file
+    frame["extracted_file"] = extracted_file
+    frame["year"] = year
+    frame["geography_level"] = infer_geography_level(extracted_file or source_file)
+    frame["file_role"] = infer_file_role(extracted_file or source_file)
+    return frame
+
+
+def read_source_file(source_path: Path) -> list[pd.DataFrame]:
     extension = source_path.suffix.lower()
     if extension == ".zip":
+        frames: list[pd.DataFrame] = []
         with zipfile.ZipFile(source_path) as archive:
-            selected_member = select_archive_member(archive, source_path)
-            with archive.open(selected_member) as archive_member:
-                payload = archive_member.read()
+            selected_members = select_archive_members(archive, source_path)
+            for selected_member in selected_members:
+                with archive.open(selected_member) as archive_member:
+                    payload = archive_member.read()
 
-        member_extension = Path(selected_member).suffix.lower()
-        frame, encoding = read_tabular_payload(payload, member_extension)
-        year = infer_year(source_path.name, selected_member)
-        log(f"Selected archive member: {selected_member}")
-        log(f"Detected encoding/reader: {encoding}")
-        log(f"Detected columns: {', '.join(frame.columns.astype(str).tolist())}")
-        log(f"Row count: {len(frame)}")
-        log(f"Inferred year: {year}")
-        frame["source_file"] = source_path.name
-        frame["extracted_file"] = selected_member
-        frame["year"] = year
-        frame["geography_level"] = infer_geography_level(selected_member)
-        frame["file_role"] = infer_file_role(selected_member)
-        return frame
+                member_extension = Path(selected_member).suffix.lower()
+                frame, encoding = read_tabular_payload(payload, member_extension)
+                year = infer_year(source_path.name, selected_member)
+                log(f"Selected archive member: {selected_member}")
+                log(f"Detected encoding/reader: {encoding}")
+                log(f"Detected columns: {', '.join(frame.columns.astype(str).tolist())}")
+                log(f"Row count: {len(frame)}")
+                log(f"Inferred year: {year}")
+                frames.append(
+                    build_frame_metadata(frame, source_path.name, selected_member, year)
+                )
+        return frames
 
     payload = source_path.read_bytes()
     frame, encoding = read_tabular_payload(payload, extension)
@@ -188,12 +213,7 @@ def read_source_file(source_path: Path) -> pd.DataFrame:
     log(f"Detected columns: {', '.join(frame.columns.astype(str).tolist())}")
     log(f"Row count: {len(frame)}")
     log(f"Inferred year: {year}")
-    frame["source_file"] = source_path.name
-    frame["extracted_file"] = ""
-    frame["year"] = year
-    frame["geography_level"] = infer_geography_level(source_path.name)
-    frame["file_role"] = infer_file_role(source_path.name)
-    return frame
+    return [build_frame_metadata(frame, source_path.name, "", year)]
 
 
 def main() -> None:
@@ -206,7 +226,7 @@ def main() -> None:
         )
 
     log(f"Found raw FiLoSoFi candidates: {', '.join(path.name for path in candidates)}")
-    frames = [read_source_file(source_path) for source_path in candidates]
+    frames = [frame for source_path in candidates for frame in read_source_file(source_path)]
     bronze = pd.concat(frames, ignore_index=True, sort=False)
 
     OUTPUT_PARQUET_PATH.parent.mkdir(parents=True, exist_ok=True)

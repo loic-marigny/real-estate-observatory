@@ -10,6 +10,7 @@ import pandas as pd
 ROOT_DIR = Path(__file__).resolve().parents[2]
 INPUT_PARQUET_PATH = ROOT_DIR / "data" / "silver" / "filosofi_silver.parquet"
 OUTPUT_COMMUNE_PARQUET_PATH = ROOT_DIR / "data" / "gold" / "filosofi_commune_indicators.parquet"
+OUTPUT_DEPARTMENT_PARQUET_PATH = ROOT_DIR / "data" / "gold" / "filosofi_department_indicators.parquet"
 OUTPUT_JSON_PATH = ROOT_DIR / "public" / "data" / "filosofi_summary.json"
 
 
@@ -65,15 +66,23 @@ def main() -> None:
         )
 
     silver = pd.read_parquet(INPUT_PARQUET_PATH)
+    if "geography_level" not in silver.columns:
+        silver["geography_level"] = "commune"
+
+    commune_silver = silver[silver["geography_level"] == "commune"].copy()
+    department_silver = silver[silver["geography_level"] == "department"].copy()
+
     latest_year = None
     available_years = sorted(
         {int(year) for year in silver["year"].dropna().tolist()}
     ) if "year" in silver.columns else []
     if available_years:
         latest_year = available_years[-1]
-        latest = silver[silver["year"] == latest_year].copy()
+        latest_commune = commune_silver[commune_silver["year"] == latest_year].copy()
+        latest_department = department_silver[department_silver["year"] == latest_year].copy()
     else:
-        latest = silver.copy()
+        latest_commune = commune_silver.copy()
+        latest_department = department_silver.copy()
 
     commune_columns = [
         column
@@ -100,34 +109,61 @@ def main() -> None:
         ]
         if column in silver.columns
     ]
-    commune_indicators = silver.loc[:, commune_columns].copy()
+    commune_indicators = commune_silver.loc[:, commune_columns].copy()
+
+    department_columns = [
+        column
+        for column in [
+            "department_code",
+            "median_income",
+            "d1_income",
+            "d2_income",
+            "d3_income",
+            "d4_income",
+            "d5_income",
+            "d6_income",
+            "d7_income",
+            "d8_income",
+            "d9_income",
+            "poverty_rate",
+            "tax_households",
+            "population",
+            "year",
+            "source_file",
+            "extracted_file",
+        ]
+        if column in silver.columns
+    ]
+    department_indicators = department_silver.loc[:, department_columns].copy()
 
     OUTPUT_COMMUNE_PARQUET_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_JSON_PATH.parent.mkdir(parents=True, exist_ok=True)
     commune_indicators.to_parquet(OUTPUT_COMMUNE_PARQUET_PATH, index=False)
+    department_indicators.to_parquet(OUTPUT_DEPARTMENT_PARQUET_PATH, index=False)
 
     weight_column = None
-    if "tax_households" in latest.columns and latest["tax_households"].notna().any():
+    if "tax_households" in latest_commune.columns and latest_commune["tax_households"].notna().any():
         weight_column = "tax_households"
-    elif "population" in latest.columns and latest["population"].notna().any():
+    elif "population" in latest_commune.columns and latest_commune["population"].notna().any():
         weight_column = "population"
 
-    weights = latest[weight_column] if weight_column is not None else None
+    weights = latest_commune[weight_column] if weight_column is not None else None
 
     national_median_income = None
-    if "median_income" in latest.columns and latest["median_income"].notna().any():
-        national_median_income = weighted_median(latest["median_income"], weights)
+    if "median_income" in latest_commune.columns and latest_commune["median_income"].notna().any():
+        national_median_income = weighted_median(latest_commune["median_income"], weights)
 
     median_income_by_department: dict[str, float | None] = {}
-    if "median_income" in latest.columns and latest["median_income"].notna().any():
-        for department_code, group in latest.groupby("department_code"):
-            median_income_by_department[str(department_code)] = weighted_median(
-                group["median_income"],
-                group[weight_column] if weight_column is not None else None,
-            )
+    if "median_income" in latest_department.columns and latest_department["median_income"].notna().any():
+        median_income_by_department = {
+            str(row["department_code"]): round(float(row["median_income"]), 2)
+            if pd.notna(row["median_income"])
+            else None
+            for row in latest_department.to_dict(orient="records")
+        }
 
     decile_columns = non_null_columns(
-        latest,
+        latest_commune,
         [
             "d1_income",
             "d2_income",
@@ -144,17 +180,41 @@ def main() -> None:
     if decile_columns:
         decile_summary = {
             column: weighted_median(
-                latest[column],
-                latest[weight_column] if weight_column is not None else None,
+                latest_commune[column],
+                latest_commune[weight_column] if weight_column is not None else None,
             )
             for column in decile_columns
         }
 
+    department_decile_columns = non_null_columns(
+        latest_department,
+        [
+            "d1_income",
+            "d2_income",
+            "d3_income",
+            "d4_income",
+            "d5_income",
+            "d6_income",
+            "d7_income",
+            "d8_income",
+            "d9_income",
+        ],
+    )
+    department_deciles_by_department = None
+    if department_decile_columns:
+        department_deciles_by_department = {
+            str(row["department_code"]): {
+                column: round(float(row[column]), 2) if pd.notna(row[column]) else None
+                for column in department_decile_columns
+            }
+            for row in latest_department.to_dict(orient="records")
+        }
+
     poverty_rate_summary = None
-    if "poverty_rate" in latest.columns and latest["poverty_rate"].notna().any():
+    if "poverty_rate" in latest_commune.columns and latest_commune["poverty_rate"].notna().any():
         poverty_rate_summary = {
-            "mean": weighted_mean(latest["poverty_rate"], latest[weight_column] if weight_column is not None else None),
-            "median": weighted_median(latest["poverty_rate"], latest[weight_column] if weight_column is not None else None),
+            "mean": weighted_mean(latest_commune["poverty_rate"], latest_commune[weight_column] if weight_column is not None else None),
+            "median": weighted_median(latest_commune["poverty_rate"], latest_commune[weight_column] if weight_column is not None else None),
         }
 
     summary = {
@@ -162,10 +222,13 @@ def main() -> None:
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "available_years": available_years,
         "latest_year": latest_year,
-        "communes_covered": int(silver["commune_code"].nunique()),
-        "departments_covered": int(silver["department_code"].nunique()),
+        "communes_covered": int(commune_silver["commune_code"].nunique()),
+        "departments_covered": int(department_silver["department_code"].nunique()),
         "national_median_income": national_median_income,
         "median_income_by_department": dict(sorted(median_income_by_department.items())),
+        "department_deciles_by_department": dict(sorted(department_deciles_by_department.items()))
+        if department_deciles_by_department is not None
+        else None,
         "decile_summary": decile_summary,
         "poverty_rate_summary": poverty_rate_summary,
         "notes": [
@@ -180,6 +243,7 @@ def main() -> None:
         output_file.write("\n")
 
     log(f"Commune indicators parquet written to {OUTPUT_COMMUNE_PARQUET_PATH}")
+    log(f"Department indicators parquet written to {OUTPUT_DEPARTMENT_PARQUET_PATH}")
     log(f"FiLoSoFi summary written to {OUTPUT_JSON_PATH}")
     log(f"Available years: {available_years}")
     log(f"Communes covered: {summary['communes_covered']}")

@@ -128,49 +128,57 @@ def detect_columns(frame: pd.DataFrame) -> dict[str, str | None]:
     return detected
 
 
-def main() -> None:
-    log("Preparing FiLoSoFi silver dataset")
-    if not INPUT_PARQUET_PATH.exists():
-        raise FileNotFoundError(
-            f"Missing bronze dataset: {INPUT_PARQUET_PATH}. "
-            "Run data/scripts/build_filosofi_bronze.py first."
+def build_empty_numeric_column(length: int) -> pd.Series:
+    return pd.Series([float("nan")] * length, dtype="float64")
+
+
+def standardize_subset(frame: pd.DataFrame, geography_level: str) -> pd.DataFrame:
+    detected = detect_columns(frame)
+    silver = frame.copy()
+
+    if geography_level == "commune":
+        if detected["commune_code"] is None:
+            available_columns = ", ".join(frame.columns.tolist())
+            raise RuntimeError(
+                "Unable to detect commune_code in commune-level FiLoSoFi data. "
+                f"Available columns: {available_columns}"
+            )
+        silver["commune_code"] = (
+            silver[detected["commune_code"]]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .str.upper()
         )
-
-    bronze = pd.read_parquet(INPUT_PARQUET_PATH)
-    bronze = rename_columns(bronze)
-
-    if "geography_level" in bronze.columns and bronze["geography_level"].eq("commune").any():
-        bronze = bronze[bronze["geography_level"] == "commune"].copy()
-        log("Filtered bronze rows to commune-level FiLoSoFi data")
-
-    detected = detect_columns(bronze)
-    if detected["commune_code"] is None:
-        available_columns = ", ".join(bronze.columns.tolist())
-        raise RuntimeError(
-            "Unable to detect commune_code in FiLoSoFi bronze dataset. "
-            f"Available columns: {available_columns}"
-        )
-
-    silver = bronze.copy()
-    silver["commune_code"] = (
-        silver[detected["commune_code"]]
-        .fillna("")
-        .astype(str)
-        .str.strip()
-        .str.upper()
-    )
+    else:
+        silver["commune_code"] = ""
 
     commune_name_column = detected["commune_name"]
     if commune_name_column is not None:
         silver["commune_name"] = silver[commune_name_column].fillna("").astype(str).str.strip()
     else:
         silver["commune_name"] = ""
-        log("Warning: commune_name column not detected; continuing with empty values")
+        if geography_level == "commune":
+            log("Warning: commune_name column not detected; continuing with empty values")
 
     department_code_column = detected["department_code"]
     if department_code_column is not None:
         silver["department_code"] = (
             silver[department_code_column].fillna("").astype(str).str.strip().str.upper()
+        )
+    elif geography_level == "department":
+        if detected["commune_code"] is None:
+            available_columns = ", ".join(frame.columns.tolist())
+            raise RuntimeError(
+                "Unable to detect department code in department-level FiLoSoFi data. "
+                f"Available columns: {available_columns}"
+            )
+        silver["department_code"] = (
+            silver[detected["commune_code"]]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .str.upper()
         )
     else:
         silver["department_code"] = ""
@@ -180,7 +188,7 @@ def main() -> None:
         if source_column is not None:
             silver[column] = to_numeric(silver[source_column])
         else:
-            silver[column] = pd.Series([float("nan")] * len(silver), dtype="float64")
+            silver[column] = build_empty_numeric_column(len(silver))
 
     year_column = detected["year"]
     if year_column is not None:
@@ -193,16 +201,54 @@ def main() -> None:
 
     if silver["median_income"].isna().all():
         if silver[["d1_income", "d5_income", "d9_income"]].notna().any(axis=None):
-            log("Warning: median_income missing; continuing because decile data is available")
+            log(
+                f"Warning: median_income missing for {geography_level}-level data; "
+                "continuing because decile data is available"
+            )
         else:
-            log("Warning: median_income missing and no decile income columns detected")
+            log(
+                f"Warning: median_income missing for {geography_level}-level data "
+                "and no decile income columns detected"
+            )
 
-    silver = silver[silver["commune_code"].ne("")].copy()
-    missing_department_mask = silver["department_code"].eq("")
-    if missing_department_mask.any():
-        silver.loc[missing_department_mask, "department_code"] = silver.loc[
-            missing_department_mask, "commune_code"
-        ].map(derive_department_code)
+    if geography_level == "commune":
+        silver = silver[silver["commune_code"].ne("")].copy()
+        missing_department_mask = silver["department_code"].eq("")
+        if missing_department_mask.any():
+            silver.loc[missing_department_mask, "department_code"] = silver.loc[
+                missing_department_mask, "commune_code"
+            ].map(derive_department_code)
+    elif geography_level == "department":
+        silver = silver[silver["department_code"].ne("")].copy()
+
+    return silver
+
+
+def main() -> None:
+    log("Preparing FiLoSoFi silver dataset")
+    if not INPUT_PARQUET_PATH.exists():
+        raise FileNotFoundError(
+            f"Missing bronze dataset: {INPUT_PARQUET_PATH}. "
+            "Run data/scripts/build_filosofi_bronze.py first."
+        )
+
+    bronze = pd.read_parquet(INPUT_PARQUET_PATH)
+    bronze = rename_columns(bronze)
+    if "geography_level" not in bronze.columns:
+        bronze["geography_level"] = "commune"
+
+    frames: list[pd.DataFrame] = []
+    for geography_level in ("commune", "department"):
+        subset = bronze[bronze["geography_level"] == geography_level].copy()
+        if subset.empty:
+            continue
+        log(f"Standardizing {geography_level}-level FiLoSoFi data")
+        frames.append(standardize_subset(subset, geography_level))
+
+    if not frames:
+        raise RuntimeError("No commune-level or department-level FiLoSoFi data found in bronze dataset")
+
+    silver = pd.concat(frames, ignore_index=True, sort=False)
 
     output_columns = [
         *bronze.columns.tolist(),
@@ -228,7 +274,8 @@ def main() -> None:
     log(f"Silver dataset written to {OUTPUT_PARQUET_PATH}")
     log(f"Rows: {len(silver)}")
     log(f"Years: {years}")
-    log(f"Communes: {silver['commune_code'].nunique()}")
+    log(f"Communes: {silver.loc[silver['geography_level'] == 'commune', 'commune_code'].nunique()}")
+    log(f"Departments: {silver.loc[silver['geography_level'] == 'department', 'department_code'].nunique()}")
     log(f"Available standardized indicators: {', '.join(available_indicators)}")
 
 
