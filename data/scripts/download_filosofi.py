@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import unicodedata
 from datetime import datetime
@@ -15,14 +16,14 @@ DATASET_API_URL = (
     "revenus-et-pauvrete-des-menages-aux-niveaux-national-et-local-"
     "revenus-localises-sociaux-et-fiscaux/"
 )
-PREFERRED_TITLE_FRAGMENT = "revenus et pauvrete des menages"
+CONFIG_PATH = Path(__file__).resolve().parents[2] / "config" / "filosofi_sources.json"
+ROOT_DIR = Path(__file__).resolve().parents[2]
+RAW_DATA_DIR = ROOT_DIR / "data" / "raw" / "filosofi"
 KNOWN_FORMATS = ("csv", "xlsx", "xls")
+PREFERRED_TITLE_FRAGMENT = "revenus et pauvrete des menages"
 REQUEST_TIMEOUT = 120
 CHUNK_SIZE = 1024 * 1024
 YEAR_PATTERN = re.compile(r"(19|20)\d{2}")
-
-ROOT_DIR = Path(__file__).resolve().parents[2]
-RAW_DATA_DIR = ROOT_DIR / "data" / "raw" / "filosofi"
 
 
 def log(message: str) -> None:
@@ -36,10 +37,28 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def load_source_config() -> dict[str, object]:
+    return json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+
+
+def source_for_year(year: int) -> dict[str, object]:
+    config = load_source_config()
+    sources = config.get("sources")
+    if not isinstance(sources, dict):
+        raise RuntimeError("Invalid FiLoSoFi source configuration: missing sources map")
+    source = sources.get(str(year))
+    if not isinstance(source, dict):
+        raise RuntimeError(f"FiLoSoFi year {year} is not configured")
+    return source
+
+
 def parse_last_modified(value: str | None) -> datetime:
     if not value:
         return datetime.min
-    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return datetime.min
 
 
 def normalize_text(value: str) -> str:
@@ -89,54 +108,113 @@ def select_resource(resources: list[dict[str, object]], year: int) -> dict[str, 
     return sorted_resources[0]
 
 
-def discover_file_url(start_url: str, expected_format: str) -> str:
-    response = requests.get(start_url, stream=True, timeout=REQUEST_TIMEOUT, allow_redirects=True)
-    response.raise_for_status()
-    content_type = (response.headers.get("content-type") or "").lower()
-    final_url = response.url
+def unique_preserving_order(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    unique_values: list[str] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        unique_values.append(value)
+    return unique_values
 
-    if "text/html" not in content_type:
-        response.close()
-        return final_url
 
-    html = response.text
-    response.close()
-    generic_matches = re.findall(
-        r"/fr/statistiques/fichier/[^\"'<>]+\.(?:zip|csv|xls|xlsx)",
-        html,
-        flags=re.IGNORECASE,
+def candidate_download_links(html: str, base_url: str) -> list[str]:
+    hrefs = re.findall(r'href=["\']([^"\']+)["\']', html, flags=re.IGNORECASE)
+    raw_urls = re.findall(r'https?://[^"\'<>\s]+', html, flags=re.IGNORECASE)
+    candidates = [urljoin(base_url, href) for href in hrefs]
+    candidates.extend(raw_urls)
+
+    filtered: list[str] = []
+    for candidate in unique_preserving_order(candidates):
+        path = urlparse(candidate).path.lower()
+        if path.endswith((".csv", ".txt", ".xls", ".xlsx", ".zip")):
+            filtered.append(candidate)
+            continue
+        if "/fichier/" in path and any(extension in path for extension in (".csv", ".txt", ".xls", ".xlsx", ".zip")):
+            filtered.append(candidate)
+            continue
+        if "/fichier/" in path and "download" in candidate.lower():
+            filtered.append(candidate)
+    return filtered
+
+
+def rank_download_candidate(url: str, preferred: str) -> tuple[int, int, int, int]:
+    path = urlparse(url).path.lower()
+    extension_order = {".csv": 4, ".xlsx": 3, ".xls": 2, ".txt": 1, ".zip": 0}
+    preferred_bonus = 1 if preferred and preferred in path else 0
+    title_bonus = 1 if PREFERRED_TITLE_FRAGMENT in normalize_text(path) else 0
+    return (
+        1 if "/fichier/" in path else 0,
+        preferred_bonus,
+        title_bonus,
+        extension_order.get(Path(path).suffix, -1),
     )
-    if generic_matches:
-        sorted_matches = sorted(
-            generic_matches,
-            key=lambda match: (
-                expected_format in match.lower(),
-                ".csv" in match.lower(),
-                ".xlsx" in match.lower(),
-                ".xls" in match.lower(),
-            ),
+
+
+def resolve_page_download_url(page_url: str, preferred_format_name: str) -> str:
+    with requests.get(page_url, timeout=REQUEST_TIMEOUT, allow_redirects=True) as response:
+        response.raise_for_status()
+        html = response.text
+        final_url = response.url
+
+    candidates = candidate_download_links(html, final_url)
+    if not candidates:
+        raise RuntimeError(f"No downloadable FiLoSoFi link found on page {page_url}")
+
+    selected_url = sorted(
+        candidates,
+        key=lambda candidate: rank_download_candidate(candidate, preferred_format_name),
+        reverse=True,
+    )[0]
+    return selected_url
+
+
+def resolve_data_gouv_download(year: int) -> tuple[str, str]:
+    with requests.get(DATASET_API_URL, timeout=REQUEST_TIMEOUT) as response:
+        response.raise_for_status()
+        dataset = response.json()
+
+    resources = dataset.get("resources")
+    if not isinstance(resources, list):
+        raise RuntimeError("Dataset metadata does not expose a valid resources array")
+
+    selected_resource = select_resource(resources, year)
+    selected_url = str(selected_resource.get("latest") or selected_resource.get("url") or "")
+    if not selected_url:
+        raise RuntimeError("Selected FiLoSoFi resource does not expose a download URL")
+
+    resolved_download_url = discover_file_url(selected_url, preferred_format(selected_resource))
+    return resolved_download_url, str(selected_resource.get("title") or f"FiLoSoFi {year}")
+
+
+def discover_file_url(start_url: str, expected_format: str) -> str:
+    with requests.get(start_url, stream=True, timeout=REQUEST_TIMEOUT, allow_redirects=True) as response:
+        response.raise_for_status()
+        content_type = (response.headers.get("content-type") or "").lower()
+        final_url = response.url
+
+        if "text/html" not in content_type:
+            return final_url
+
+        html = response.text
+
+    candidates = candidate_download_links(html, final_url)
+    if candidates:
+        return sorted(
+            candidates,
+            key=lambda candidate: rank_download_candidate(candidate, expected_format),
             reverse=True,
-        )
-        return urljoin(final_url, sorted_matches[0])
+        )[0]
     return final_url
 
 
-def build_output_filename(resource: dict[str, object], download_url: str) -> str:
-    selected_format = preferred_format(resource)
+def build_output_filename(year: int, download_url: str) -> str:
     path = urlparse(download_url).path.lower()
-    if path.endswith(".zip") and selected_format in KNOWN_FORMATS:
-        return f"filosofi_{infer_year_from_resource(resource)}.{selected_format}.zip"
-    if path.endswith(".csv"):
-        return f"filosofi_{infer_year_from_resource(resource)}.csv"
-    if path.endswith(".xlsx"):
-        return f"filosofi_{infer_year_from_resource(resource)}.xlsx"
-    if path.endswith(".xls"):
-        return f"filosofi_{infer_year_from_resource(resource)}.xls"
-    if path.endswith(".zip"):
-        return f"filosofi_{infer_year_from_resource(resource)}.zip"
-    if selected_format in KNOWN_FORMATS:
-        return f"filosofi_{infer_year_from_resource(resource)}.{selected_format}"
-    return f"filosofi_{infer_year_from_resource(resource)}.bin"
+    suffix = Path(path).suffix
+    if suffix in {".csv", ".txt", ".xls", ".xlsx", ".zip"}:
+        return f"filosofi_{year}{suffix}"
+    return f"filosofi_{year}.bin"
 
 
 def stream_download(download_url: str, output_path: Path) -> None:
@@ -144,7 +222,7 @@ def stream_download(download_url: str, output_path: Path) -> None:
     temp_output_path.unlink(missing_ok=True)
     total_bytes = 0
     try:
-        with requests.get(download_url, stream=True, timeout=REQUEST_TIMEOUT) as response:
+        with requests.get(download_url, stream=True, timeout=REQUEST_TIMEOUT, allow_redirects=True) as response:
             response.raise_for_status()
             with temp_output_path.open("wb") as output_file:
                 for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
@@ -159,36 +237,52 @@ def stream_download(download_url: str, output_path: Path) -> None:
     temp_output_path.replace(output_path)
 
 
+def resolve_download(year: int) -> tuple[str, str]:
+    source = source_for_year(year)
+    if source.get("page_url"):
+        page_url = str(source["page_url"])
+        download_url = resolve_page_download_url(page_url, "")
+        return download_url, page_url
+
+    download_url, _ = resolve_data_gouv_download(year)
+    return download_url, DATASET_API_URL
+
+
 def main() -> None:
     args = parse_args()
     log(f"Preparing FiLoSoFi raw data download for year {args.year}")
     RAW_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-    metadata_response = requests.get(DATASET_API_URL, timeout=REQUEST_TIMEOUT)
-    metadata_response.raise_for_status()
-    dataset = metadata_response.json()
-    resources = dataset.get("resources")
-    if not isinstance(resources, list):
-        raise RuntimeError("Dataset metadata does not expose a valid resources array")
+    source = source_for_year(args.year)
+    if source.get("page_url"):
+        page_url = str(source["page_url"])
+        log(f"Source page: {page_url}")
+        try:
+            download_url = resolve_page_download_url(page_url, "")
+            source_label = page_url
+        except Exception as exc:
+            log(f"Page link resolution failed, falling back to data.gouv: {exc}")
+            download_url, selected_title = resolve_data_gouv_download(args.year)
+            source_label = selected_title
+            log(f"Selected resource title: {selected_title}")
+    else:
+        download_url, selected_title = resolve_data_gouv_download(args.year)
+        source_label = selected_title
+        log(f"Selected resource title: {selected_title}")
 
-    selected_resource = select_resource(resources, args.year)
-    selected_url = str(selected_resource.get("latest") or selected_resource.get("url") or "")
-    if not selected_url:
-        raise RuntimeError("Selected FiLoSoFi resource does not expose a download URL")
-
-    resolved_download_url = discover_file_url(selected_url, preferred_format(selected_resource))
     output_dir = RAW_DATA_DIR / f"year={args.year}"
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / build_output_filename(selected_resource, resolved_download_url)
+    output_path = output_dir / build_output_filename(args.year, download_url)
 
-    log(f"Download URL: {resolved_download_url}")
+    log(f"Download URL: {download_url}")
     log(f"Output path: {output_path}")
     if output_path.exists() and not args.force:
         log(f"Skipping download, file already exists: {output_path}")
         return
 
-    stream_download(resolved_download_url, output_path)
+    stream_download(download_url, output_path)
     log(f"Download completed: {output_path}")
+    log(f"Source: {source_label}")
 
 
 if __name__ == "__main__":
