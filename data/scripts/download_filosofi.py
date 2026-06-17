@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import unicodedata
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
@@ -42,7 +43,8 @@ def parse_last_modified(value: str | None) -> datetime:
 
 
 def normalize_text(value: str) -> str:
-    return value.lower().replace("é", "e").replace("è", "e").replace("ê", "e")
+    normalized = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
+    return normalized.lower()
 
 
 def format_tokens(resource: dict[str, object]) -> set[str]:

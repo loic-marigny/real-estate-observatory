@@ -2,7 +2,28 @@ name: DVF Pipeline
 
 on:
   workflow_call:
+    inputs:
+      mode:
+        required: false
+        type: string
+        default: all_configured
+      year:
+        required: false
+        type: string
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Select whether to run every configured DVF year or a single year.
+        required: true
+        type: choice
+        default: all_configured
+        options:
+          - all_configured
+          - single_year
+      year:
+        description: Year to run when mode is single_year.
+        required: false
+        type: string
 
 jobs:
   dvf-pipeline:
@@ -22,9 +43,20 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Build configured DVF years
+      - name: Build DVF years
+        env:
+          PIPELINE_MODE: ${{ inputs.mode || 'all_configured' }}
+          PIPELINE_YEAR: ${{ inputs.year || '' }}
         run: |
-          python scripts/build_dvf.py --all-configured
+          if [ "$PIPELINE_MODE" = "single_year" ]; then
+            if [ -z "$PIPELINE_YEAR" ]; then
+              echo "year is required when mode is single_year" >&2
+              exit 1
+            fi
+            python scripts/build_dvf.py --year "$PIPELINE_YEAR"
+          else
+            python scripts/build_dvf.py --all-configured
+          fi
 
       - name: Upload DVF silver artifacts to R2
         env:

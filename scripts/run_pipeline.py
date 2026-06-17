@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-import json
 import subprocess
 import sys
 from pathlib import Path
 
+from scripts.pipeline_config import load_pipeline_config
+
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
-CONFIG_PATH = ROOT_DIR / "config" / "pipeline_years.json"
 
 
 def log(message: str) -> None:
@@ -15,11 +15,7 @@ def log(message: str) -> None:
 
 
 def load_config() -> dict[str, list[int]]:
-    payload = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-    return {
-        "dvf_years": [int(year) for year in payload.get("dvf_years", [])],
-        "filosofi_years": [int(year) for year in payload.get("filosofi_years", [])],
-    }
+    return load_pipeline_config()
 
 
 def run_step(*args: str) -> None:
