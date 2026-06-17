@@ -65,7 +65,22 @@ class FiLoSoFiDownloaderTests(unittest.TestCase):
         candidates = candidate_download_links(html, "https://www.insee.fr/fr/statistiques/7756729")
         selected = sorted(candidates, key=lambda candidate: rank_download_candidate(candidate, ""), reverse=True)[0]
 
-        self.assertEqual(selected, "https://www.insee.fr/fr/statistiques/fichier/7756729/filosofi_2021.csv")
+        self.assertEqual(selected["url"], "https://www.insee.fr/fr/statistiques/fichier/7756729/filosofi_2021.csv")
+
+    def test_page_html_rejects_rpm_summary_when_filosofi_file_exists(self) -> None:
+        html = """
+        <html>
+          <body>
+            <a href="/fr/statistiques/fichier/5371275/RPM2021_D2.xlsx">Tableau RPM</a>
+            <a href="/fr/statistiques/fichier/5371275/base-filosofi-2018.zip">Base FiLoSoFi 2018</a>
+          </body>
+        </html>
+        """
+
+        candidates = candidate_download_links(html, "https://www.insee.fr/fr/statistiques/5371275")
+        selected = sorted(candidates, key=lambda candidate: rank_download_candidate(candidate, ""), reverse=True)[0]
+
+        self.assertEqual(selected["url"], "https://www.insee.fr/fr/statistiques/fichier/5371275/base-filosofi-2018.zip")
 
     def test_configured_years_exclude_2022(self) -> None:
         config_path = ROOT_DIR / "config" / "filosofi_sources.json"

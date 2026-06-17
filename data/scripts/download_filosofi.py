@@ -24,6 +24,37 @@ PREFERRED_TITLE_FRAGMENT = "revenus et pauvrete des menages"
 REQUEST_TIMEOUT = 120
 CHUNK_SIZE = 1024 * 1024
 YEAR_PATTERN = re.compile(r"(19|20)\d{2}")
+POSITIVE_URL_TOKENS = (
+    "filosofi",
+    "base-filosofi",
+    "revenus",
+    "pauvrete",
+    "menages",
+    "dispositif",
+    "dep",
+    "com",
+    "commune",
+    "departement",
+)
+NEGATIVE_URL_TOKENS = (
+    "rpm",
+    "d1",
+    "d2",
+    "d3",
+    "d4",
+    "d5",
+    "d6",
+    "d7",
+    "d8",
+    "d9",
+    "documentation",
+    "doc",
+    "metadata",
+    "meta",
+    "note",
+    "notice",
+    "xlsm",
+)
 
 
 def log(message: str) -> None:
@@ -119,35 +150,51 @@ def unique_preserving_order(values: list[str]) -> list[str]:
     return unique_values
 
 
-def candidate_download_links(html: str, base_url: str) -> list[str]:
-    hrefs = re.findall(r'href=["\']([^"\']+)["\']', html, flags=re.IGNORECASE)
-    raw_urls = re.findall(r'https?://[^"\'<>\s]+', html, flags=re.IGNORECASE)
-    candidates = [urljoin(base_url, href) for href in hrefs]
-    candidates.extend(raw_urls)
+def candidate_download_links(html: str, base_url: str) -> list[dict[str, str]]:
+    candidates: list[dict[str, str]] = []
 
-    filtered: list[str] = []
-    for candidate in unique_preserving_order(candidates):
-        path = urlparse(candidate).path.lower()
+    for href, label in re.findall(r'<a[^>]+href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', html, flags=re.IGNORECASE | re.DOTALL):
+        absolute_url = urljoin(base_url, href)
+        label_text = re.sub(r"<[^>]+>", " ", label)
+        candidates.append({"url": absolute_url, "label": label_text.strip()})
+
+    for raw_url in re.findall(r'https?://[^"\'<>\s]+', html, flags=re.IGNORECASE):
+        candidates.append({"url": raw_url, "label": ""})
+
+    filtered: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        url = candidate["url"]
+        if url in seen:
+            continue
+        seen.add(url)
+        path = urlparse(url).path.lower()
         if path.endswith((".csv", ".txt", ".xls", ".xlsx", ".zip")):
             filtered.append(candidate)
             continue
         if "/fichier/" in path and any(extension in path for extension in (".csv", ".txt", ".xls", ".xlsx", ".zip")):
             filtered.append(candidate)
             continue
-        if "/fichier/" in path and "download" in candidate.lower():
+        if "/fichier/" in path and "download" in url.lower():
             filtered.append(candidate)
     return filtered
 
 
-def rank_download_candidate(url: str, preferred: str) -> tuple[int, int, int, int]:
+def rank_download_candidate(candidate: dict[str, str], preferred: str) -> tuple[int, int, int, int, int, int]:
+    url = candidate["url"]
+    label = normalize_text(candidate.get("label", ""))
     path = urlparse(url).path.lower()
     extension_order = {".csv": 4, ".xlsx": 3, ".xls": 2, ".txt": 1, ".zip": 0}
     preferred_bonus = 1 if preferred and preferred in path else 0
-    title_bonus = 1 if PREFERRED_TITLE_FRAGMENT in normalize_text(path) else 0
+    combined_text = normalize_text(f"{path} {label}")
+    positive_bonus = sum(token in combined_text for token in POSITIVE_URL_TOKENS)
+    negative_penalty = sum(token in combined_text for token in NEGATIVE_URL_TOKENS)
     return (
         1 if "/fichier/" in path else 0,
         preferred_bonus,
-        title_bonus,
+        positive_bonus,
+        0 if negative_penalty else 1,
+        1 if Path(path).suffix == ".zip" and "filosofi" in combined_text else 0,
         extension_order.get(Path(path).suffix, -1),
     )
 
@@ -162,11 +209,14 @@ def resolve_page_download_url(page_url: str, preferred_format_name: str) -> str:
     if not candidates:
         raise RuntimeError(f"No downloadable FiLoSoFi link found on page {page_url}")
 
-    selected_url = sorted(
+    selected_candidate = sorted(
         candidates,
         key=lambda candidate: rank_download_candidate(candidate, preferred_format_name),
         reverse=True,
     )[0]
+    selected_url = selected_candidate["url"]
+    if sum(token in normalize_text(f"{selected_url} {selected_candidate.get('label', '')}") for token in POSITIVE_URL_TOKENS) == 0:
+        raise RuntimeError(f"No FiLoSoFi-like download candidate found on page {page_url}")
     return selected_url
 
 
@@ -205,7 +255,7 @@ def discover_file_url(start_url: str, expected_format: str) -> str:
             candidates,
             key=lambda candidate: rank_download_candidate(candidate, expected_format),
             reverse=True,
-        )[0]
+        )[0]["url"]
     return final_url
 
 
