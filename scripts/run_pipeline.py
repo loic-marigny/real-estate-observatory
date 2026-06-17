@@ -4,7 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from scripts.pipeline_config import load_pipeline_config
+from pipeline_config import load_pipeline_config
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
