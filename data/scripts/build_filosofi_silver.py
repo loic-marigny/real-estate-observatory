@@ -134,6 +134,41 @@ def detect_columns(frame: pd.DataFrame) -> dict[str, str | None]:
     }
 
 
+def infer_geography_level_from_frame(frame: pd.DataFrame) -> str | None:
+    detected = detect_columns(frame)
+    commune_col = detected["commune_code"]
+    department_col = detected["department_code"]
+
+    if commune_col is not None:
+        commune_values = (
+            frame[commune_col]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .str.upper()
+        )
+        commune_values = commune_values[commune_values.ne("")]
+        if not commune_values.empty:
+            if commune_values.str.len().ge(5).any() or commune_values.str.match(r"^(97|98)\d{2,}$").any():
+                return "commune"
+            if commune_values.str.len().le(3).all():
+                return "department"
+
+    if department_col is not None:
+        department_values = (
+            frame[department_col]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .str.upper()
+        )
+        department_values = department_values[department_values.ne("")]
+        if not department_values.empty:
+            return "department"
+
+    return None
+
+
 def standardize_subset(frame: pd.DataFrame, geography_level: str, year: int) -> pd.DataFrame:
     detected = detect_columns(frame)
     silver = frame.copy()
@@ -200,6 +235,13 @@ def main() -> None:
         if subset.empty:
             continue
         frames.append(standardize_subset(subset, geography_level, args.year))
+
+    unknown_subset = bronze[~bronze["geography_level"].isin(["commune", "department"])].copy()
+    if not unknown_subset.empty:
+        inferred_level = infer_geography_level_from_frame(unknown_subset)
+        if inferred_level is not None:
+            log(f"Inferred geography level '{inferred_level}' from bronze columns for year {args.year}")
+            frames.append(standardize_subset(unknown_subset, inferred_level, args.year))
 
     if not frames:
         raise RuntimeError("No commune-level or department-level FiLoSoFi data found in bronze dataset")
