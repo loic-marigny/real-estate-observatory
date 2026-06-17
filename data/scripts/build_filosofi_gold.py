@@ -9,6 +9,7 @@ import pandas as pd
 
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
+CONFIG_PATH = ROOT_DIR / "config" / "filosofi_sources.json"
 
 
 def log(message: str) -> None:
@@ -28,6 +29,17 @@ def silver_path(year: int) -> Path:
 
 def gold_dir(year: int) -> Path:
     return ROOT_DIR / "data" / "gold" / "filosofi" / f"year={year}"
+
+
+def pipeline_mode_for_year(year: int) -> str:
+    payload = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    sources = payload.get("sources", {})
+    if not isinstance(sources, dict):
+        return "full_pipeline"
+    source = sources.get(str(year), {})
+    if not isinstance(source, dict):
+        return "full_pipeline"
+    return str(source.get("pipeline_mode", "full_pipeline"))
 
 
 def weighted_median(values: pd.Series, weights: pd.Series | None = None) -> float | None:
@@ -55,6 +67,9 @@ def weighted_mean(values: pd.Series, weights: pd.Series | None = None) -> float 
 
 def main() -> None:
     args = parse_args()
+    if pipeline_mode_for_year(args.year) == "bronze_only":
+        log(f"Year {args.year} is configured as bronze-only. Skipping gold build.")
+        return
     input_path = silver_path(args.year)
     output_dir = gold_dir(args.year)
     commune_output = output_dir / "filosofi_commune_indicators.parquet"

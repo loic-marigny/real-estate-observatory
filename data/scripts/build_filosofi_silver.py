@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import unicodedata
 from pathlib import Path
@@ -9,6 +10,7 @@ import pandas as pd
 
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
+CONFIG_PATH = ROOT_DIR / "config" / "filosofi_sources.json"
 STANDARD_COLUMNS = [
     "commune_code",
     "commune_name",
@@ -61,6 +63,17 @@ def input_path(year: int) -> Path:
 
 def output_path(year: int) -> Path:
     return ROOT_DIR / "data" / "silver" / "filosofi" / f"year={year}" / "filosofi_silver.parquet"
+
+
+def pipeline_mode_for_year(year: int) -> str:
+    payload = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    sources = payload.get("sources", {})
+    if not isinstance(sources, dict):
+        return "full_pipeline"
+    source = sources.get(str(year), {})
+    if not isinstance(source, dict):
+        return "full_pipeline"
+    return str(source.get("pipeline_mode", "full_pipeline"))
 
 
 def normalize_name(value: str) -> str:
@@ -218,6 +231,9 @@ def standardize_subset(frame: pd.DataFrame, geography_level: str, year: int) -> 
 
 def main() -> None:
     args = parse_args()
+    if pipeline_mode_for_year(args.year) == "bronze_only":
+        log(f"Year {args.year} is configured as bronze-only. Skipping silver build.")
+        return
     bronze_path = input_path(args.year)
     silver_path = output_path(args.year)
     log(f"Preparing FiLoSoFi silver dataset for year {args.year}")

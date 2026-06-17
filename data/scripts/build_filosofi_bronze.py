@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import io
+import json
 import re
 import zipfile
 from pathlib import Path
@@ -10,6 +11,7 @@ import pandas as pd
 
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
+CONFIG_PATH = ROOT_DIR / "config" / "filosofi_sources.json"
 SUPPORTED_EXTENSIONS = {".zip", ".csv", ".txt", ".xls", ".xlsx"}
 TABULAR_EXTENSIONS = {".csv", ".txt", ".xls", ".xlsx"}
 
@@ -30,6 +32,17 @@ def raw_dir(year: int) -> Path:
 
 def output_path(year: int) -> Path:
     return ROOT_DIR / "data" / "bronze" / "filosofi" / f"year={year}" / "filosofi_bronze.parquet"
+
+
+def pipeline_mode_for_year(year: int) -> str:
+    payload = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    sources = payload.get("sources", {})
+    if not isinstance(sources, dict):
+        return "full_pipeline"
+    source = sources.get(str(year), {})
+    if not isinstance(source, dict):
+        return "full_pipeline"
+    return str(source.get("pipeline_mode", "full_pipeline"))
 
 
 def infer_geography_level(name: str) -> str:
@@ -160,6 +173,9 @@ def read_source_file(source_path: Path, year: int) -> list[pd.DataFrame]:
 
 def main() -> None:
     args = parse_args()
+    if pipeline_mode_for_year(args.year) == "bronze_only":
+        log(f"Year {args.year} is configured as bronze-only. Skipping legacy parquet bronze build.")
+        return
     log(f"Preparing FiLoSoFi bronze dataset for year {args.year}")
     candidates = list_raw_candidates(args.year)
     if not candidates:

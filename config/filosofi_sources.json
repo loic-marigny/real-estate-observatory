@@ -3,22 +3,99 @@
   "years": [2017, 2018, 2019, 2020, 2021, 2023],
   "sources": {
     "2017": {
-      "source_type": "data_gouv"
+      "source_type": "data_gouv",
+      "pipeline_mode": "full_pipeline"
     },
     "2018": {
-      "page_url": "https://www.insee.fr/fr/statistiques/5371275"
+      "source_type": "insee_xlsx_zip",
+      "pipeline_mode": "bronze_only",
+      "dispositif": "filosofi",
+      "geographic_level": "commune",
+      "includes_municipal_arrondissements": true,
+      "source_page_url": "https://www.insee.fr/fr/statistiques/5009218",
+      "download_url": "https://www.insee.fr/fr/statistiques/fichier/5009218/indic-struct-distrib-revenu-2018-COMMUNES.zip",
+      "archive_filename": "indic-struct-distrib-revenu-2018-COMMUNES.zip",
+      "published_at": "2021-06-10",
+      "reference_geography": "2019-01-01",
+      "territorial_coverage": "France métropolitaine et arrondissements municipaux de Paris, Lyon et Marseille - communes et arrondissements municipaux",
+      "required_filename_fragments": [
+        "DEC_COM",
+        "DISP_COM"
+      ]
     },
     "2019": {
-      "page_url": "https://www.insee.fr/fr/statistiques/5371276"
+      "source_type": "insee_xlsx_zip",
+      "pipeline_mode": "bronze_only",
+      "dispositif": "filosofi",
+      "geographic_level": "commune",
+      "includes_municipal_arrondissements": true,
+      "source_page_url": "https://www.insee.fr/fr/statistiques/6036907",
+      "download_url": "https://www.insee.fr/fr/statistiques/fichier/6036907/indic-struct-distrib-revenu-2019-COMMUNES.zip",
+      "archive_filename": "indic-struct-distrib-revenu-2019-COMMUNES.zip",
+      "published_at": "2022-01-17",
+      "reference_geography": "2020-01-01",
+      "territorial_coverage": "France métropolitaine et arrondissements municipaux de Paris, Lyon et Marseille - communes et arrondissements municipaux",
+      "required_filename_fragments": [
+        "DEC_COM",
+        "DISP_COM"
+      ]
     },
     "2020": {
-      "page_url": "https://www.insee.fr/fr/statistiques/6651493"
+      "source_type": "insee_xlsx_zip",
+      "pipeline_mode": "bronze_only",
+      "dispositif": "filosofi",
+      "geographic_level": "commune",
+      "includes_municipal_arrondissements": true,
+      "source_page_url": "https://www.insee.fr/fr/statistiques/6692220",
+      "download_url": "https://www.insee.fr/fr/statistiques/fichier/6692220/indic-struct-distrib-revenu-2020-COMMUNES_XLSX.zip",
+      "archive_filename": "indic-struct-distrib-revenu-2020-COMMUNES_XLSX.zip",
+      "published_at": "2023-01-23",
+      "reference_geography": "2021-01-01",
+      "territorial_coverage": "France métropolitaine, Guadeloupe, Martinique, Guyane, La Réunion et Mayotte - communes et arrondissements municipaux de Paris, Lyon et Marseille",
+      "expected_files": [
+        "FILO2020_DEC_COM.xlsx",
+        "FILO2020_DEC_PAUVRES_COM.xlsx",
+        "FILO2020_DISP_COM.xlsx",
+        "FILO2020_DISP_PAUVRES_COM.xlsx",
+        "FILO2020_TRDECILES_DEC_COM.xlsx",
+        "FILO2020_TRDECILES_DISP_COM.xlsx"
+      ]
     },
     "2021": {
-      "page_url": "https://www.insee.fr/fr/statistiques/7756729"
+      "source_type": "insee_xlsx_zip",
+      "pipeline_mode": "bronze_only",
+      "dispositif": "filosofi",
+      "geographic_level": "commune",
+      "includes_municipal_arrondissements": true,
+      "source_page_url": "https://www.insee.fr/fr/statistiques/7756855",
+      "download_url": "https://www.insee.fr/fr/statistiques/fichier/7756855/indic-struct-distrib-revenu-2021-COMMUNES_XLSX.zip",
+      "archive_filename": "indic-struct-distrib-revenu-2021-COMMUNES_XLSX.zip",
+      "published_at": "2024-01-29",
+      "reference_geography": "2022-01-01",
+      "territorial_coverage": "France métropolitaine, Guadeloupe, Martinique, Guyane, La Réunion et Mayotte - communes et arrondissements municipaux de Paris, Lyon et Marseille",
+      "required_filename_fragments": [
+        "DEC_COM",
+        "DISP_COM"
+      ],
+      "validation_warnings": [
+        "The first 2021 publication dated 2024-01-29 contained errors in TAILLEM_1 to TAILLEM_5 tabs and was corrected on 2024-03-12. The pipeline downloads the current official archive."
+      ]
     },
     "2023": {
-      "page_url": "https://www.insee.fr/fr/statistiques/8984752"
+      "source_type": "insee_filosofi2_multigeography",
+      "pipeline_mode": "bronze_only",
+      "dispositif": "filosofi2",
+      "geographic_level": "multiple",
+      "source_page_url": "https://www.insee.fr/fr/statistiques/8984752",
+      "reference_geography_published": "2025-01-01",
+      "reference_geography_production": "2024-01-01",
+      "territorial_coverage": "France entière et plusieurs niveaux géographiques dans un même fichier",
+      "methodological_break": true,
+      "link_discovery": {
+        "label": "Revenus et pauvreté des ménages en 2023 - Tous les niveaux géographiques",
+        "preferred_format": "csv",
+        "required_url_fragment": "FILOSOFI_CC_"
+      }
     }
   }
 }

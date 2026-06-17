@@ -28,6 +28,7 @@ data/raw/
 data/bronze/
 data/silver/
 data/gold/
+data/tmp_filosofi_inspect/
 config/*.local.json
 *.csv
 *.txt
