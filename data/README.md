@@ -112,9 +112,9 @@ The legacy 2017 path still uses the official `data.gouv.fr` dataset metadata and
 - `data/gold/filosofi/year=2017/filosofi_commune_indicators.parquet`
 - `data/gold/filosofi/year=2017/filosofi_department_indicators.parquet`
 
-### 2020 Bronze Ingestion
+### 2018-2021 Historical Pipeline
 
-The post-2017 ingestion is intentionally bronze-only at this stage. The historical Filosofi years 2018, 2019, 2020, and 2021 all use commune-level XLSX ZIP archives with six workbooks. The pipeline preserves the original archives and extracts the workbooks without modifying them.
+The historical FiLoSoFi years 2018, 2019, 2020, and 2021 all use commune-level XLSX ZIP archives with six workbooks. The pipeline preserves the original archives, extracts the workbooks, then builds normalized silver and gold layers from the `DISP_COM` and `DISP_Pauvres_COM` workbooks.
 
 Official pages and archive links:
 
@@ -149,7 +149,7 @@ These archives all preserve the same workbook families:
 - `TRDECILES`: income composition by decile band
 - `COM`: commune level, including municipal arrondissements for Paris, Lyon, and Marseille
 
-The bronze ingestion preserves the original archive and extracts the real XLSX files without modifying or merging them:
+The bronze source ingestion preserves the original archive and extracts the real XLSX files without modifying or merging them:
 
 ```text
 data/bronze/filosofi/year=YYYY/
@@ -162,7 +162,14 @@ data/bronze/filosofi/year=YYYY/
 
 `manifest.json` records the source URLs, final resolved download URL, UTC download timestamp, archive size, archive SHA-256, extracted file sizes and SHA-256 values, workbook sheet names, publication date, reference geography, territorial coverage, validation status, and methodological warnings when needed.
 
-The workbooks are not fused at this stage. Their internal structure is preserved:
+The bronze parquet for these historical years is built from the `ENSEMBLE` sheet of:
+
+- `FILO<YEAR>_DISP_COM.xlsx`
+- `FILO<YEAR>_DISP_Pauvres_COM.xlsx`
+
+This keeps the technical columns published by INSEE while limiting downstream normalization to the files needed for commune-level income and poverty indicators.
+
+The extracted workbooks are not fused in the source bronze folder. Their internal structure is preserved:
 
 - rows 1 to 4: title, vintage, geography, source
 - row 5: human-readable labels
@@ -187,6 +194,15 @@ Important source semantics:
 
 The bronze layer preserves `s` exactly as published. It is not converted to zero or null at this stage.
 
+Silver and gold outputs for 2018 to 2021:
+
+- silver: `data/silver/filosofi/year=YYYY/filosofi_silver.parquet`
+- gold commune table: `data/gold/filosofi/year=YYYY/filosofi_commune_indicators.parquet`
+- gold department table: `data/gold/filosofi/year=YYYY/filosofi_department_indicators.parquet`
+- gold summary: `data/gold/filosofi/year=YYYY/filosofi_summary.json`
+
+For these historical years, department gold indicators are derived from commune rows because the commune archive does not include an official department table in the current configuration.
+
 Special year-level metadata:
 
 - 2018 is published with geography `2019-01-01`
@@ -195,9 +211,9 @@ Special year-level metadata:
 - 2021 is published with geography `2022-01-01`
 - the 2021 archive currently published on the official page supersedes the initial `2024-01-29` release after corrections documented by INSEE on `2024-03-12`
 
-### 2023 Bronze Ingestion
+### 2023 FiLoSoFi 2 Pipeline
 
-The 2023 source belongs to `Filosofi 2` and is not directly comparable to 2018-2021. The bronze ingestion therefore preserves it separately and does not harmonize its columns with the historical workbooks.
+The 2023 source belongs to `Filosofi 2` and is not directly comparable to 2018-2021. The source ingestion therefore preserves it separately and the silver layer normalizes it through a dedicated path.
 
 Official page:
 
@@ -211,7 +227,7 @@ and prefers the CSV archive over the XLSX variant. The current published archive
 
 - `https://www.insee.fr/fr/statistiques/fichier/8984752/FILOSOFI_CC_csv.zip`
 
-The 2023 bronze layer preserves:
+The 2023 source layer preserves:
 
 ```text
 data/bronze/filosofi/year=2023/
@@ -271,19 +287,29 @@ The bronze inspection also records the published measures, including:
 - `S80S20_SL`
 - disposable income components such as `S_DIR_TAX_DI`, `S_EI_DI`, `S_RET_PEN_DI`, `S_SOC_BEN_DI`
 
-Because `Filosofi 2` uses a normalized multi-geography structure, it must be handled by a dedicated future silver normalization path.
+The 2023 silver layer keeps only the `COM` and `DEP` rows, pivots the normalized measures into a wide analytical table, and maps:
 
-### Future FiLoSoFi Silver Decisions
+- `MED_SL` to `median_income`
+- `D1_SL` to `D9_SL` to the decile columns
+- `PR_MD60` to `poverty_rate`
 
-The post-2017 bronze ingestion deliberately avoids premature normalization. The next silver step will need explicit decisions about:
+The 2023 gold layer writes:
 
-- which of the six workbooks should feed the main commune-level analytical table
-- whether `DEC` and `DISP` remain separate datasets or are normalized into one shared schema
-- how to represent subgroup sheets without flattening incompatible populations together
-- how to convert `s` into nulls plus an explicit secrecy flag
-- how and when department-level indicators should be sourced from official department files instead of recalculated from commune data
-- how to split the 2023 multi-geography file by level without losing the normalized measure structure
-- how to handle the methodological break between `Filosofi` and `Filosofi 2`
+- `data/gold/filosofi/year=2023/filosofi_commune_indicators.parquet`
+- `data/gold/filosofi/year=2023/filosofi_department_indicators.parquet`
+- `data/gold/filosofi/year=2023/filosofi_summary.json`
+
+For `2023`, the department table is official because the published source already contains `DEP` rows.
+
+### Remaining FiLoSoFi Modeling Decisions
+
+The pipeline now produces bronze, silver, and gold outputs for every configured FiLoSoFi year, but some modeling questions remain open:
+
+ - whether future silver tables should integrate more than the `ENSEMBLE` sheet for 2018-2021
+ - whether `DEC` and `DISP` should remain separate analytical families
+ - how to expose protected `s` values in analytical views
+ - how to handle the methodological break between `Filosofi` and `Filosofi 2` in longitudinal comparisons
+ - whether later official department archives should replace the current commune-derived department gold outputs for 2018-2021
 
 ## DVF
 

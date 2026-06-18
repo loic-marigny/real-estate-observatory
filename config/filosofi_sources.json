@@ -8,7 +8,7 @@
     },
     "2018": {
       "source_type": "insee_xlsx_zip",
-      "pipeline_mode": "bronze_only",
+      "pipeline_mode": "full_pipeline",
       "dispositif": "filosofi",
       "geographic_level": "commune",
       "includes_municipal_arrondissements": true,
@@ -25,7 +25,7 @@
     },
     "2019": {
       "source_type": "insee_xlsx_zip",
-      "pipeline_mode": "bronze_only",
+      "pipeline_mode": "full_pipeline",
       "dispositif": "filosofi",
       "geographic_level": "commune",
       "includes_municipal_arrondissements": true,
@@ -42,7 +42,7 @@
     },
     "2020": {
       "source_type": "insee_xlsx_zip",
-      "pipeline_mode": "bronze_only",
+      "pipeline_mode": "full_pipeline",
       "dispositif": "filosofi",
       "geographic_level": "commune",
       "includes_municipal_arrondissements": true,
@@ -63,7 +63,7 @@
     },
     "2021": {
       "source_type": "insee_xlsx_zip",
-      "pipeline_mode": "bronze_only",
+      "pipeline_mode": "full_pipeline",
       "dispositif": "filosofi",
       "geographic_level": "commune",
       "includes_municipal_arrondissements": true,
@@ -83,7 +83,7 @@
     },
     "2023": {
       "source_type": "insee_filosofi2_multigeography",
-      "pipeline_mode": "bronze_only",
+      "pipeline_mode": "full_pipeline",
       "dispositif": "filosofi2",
       "geographic_level": "multiple",
       "source_page_url": "https://www.insee.fr/fr/statistiques/8984752",

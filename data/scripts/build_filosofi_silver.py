@@ -45,6 +45,18 @@ NUMERIC_COLUMNS = [
     "tax_households",
     "population",
 ]
+FILOSOFI2_MEASURE_MAP = {
+    "MED_SL": "median_income",
+    "D1_SL": "d1_income",
+    "D2_SL": "d2_income",
+    "D3_SL": "d3_income",
+    "D4_SL": "d4_income",
+    "D6_SL": "d6_income",
+    "D7_SL": "d7_income",
+    "D8_SL": "d8_income",
+    "D9_SL": "d9_income",
+    "PR_MD60": "poverty_rate",
+}
 
 
 def log(message: str) -> None:
@@ -65,15 +77,15 @@ def output_path(year: int) -> Path:
     return ROOT_DIR / "data" / "silver" / "filosofi" / f"year={year}" / "filosofi_silver.parquet"
 
 
-def pipeline_mode_for_year(year: int) -> str:
+def source_for_year(year: int) -> dict[str, object]:
     payload = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
     sources = payload.get("sources", {})
     if not isinstance(sources, dict):
-        return "full_pipeline"
-    source = sources.get(str(year), {})
+        raise RuntimeError("Invalid FiLoSoFi source configuration")
+    source = sources.get(str(year))
     if not isinstance(source, dict):
-        return "full_pipeline"
-    return str(source.get("pipeline_mode", "full_pipeline"))
+        raise RuntimeError(f"FiLoSoFi year {year} is not configured")
+    return source
 
 
 def normalize_name(value: str) -> str:
@@ -119,7 +131,7 @@ def to_numeric(series: pd.Series) -> pd.Series:
         .str.replace("\xa0", "", regex=False)
         .str.replace(" ", "", regex=False)
         .str.replace(",", ".", regex=False)
-        .replace("", pd.NA)
+        .replace({"": pd.NA, "s": pd.NA, "S": pd.NA})
     )
     return pd.to_numeric(normalized, errors="coerce")
 
@@ -127,22 +139,22 @@ def to_numeric(series: pd.Series) -> pd.Series:
 def detect_columns(frame: pd.DataFrame) -> dict[str, str | None]:
     columns = frame.columns.tolist()
     return {
-        "commune_code": select_best_column(columns, [r"^commune_code$", r"^code_commune$", r"^codgeo$", r"^code_geo$"]),
+        "commune_code": select_best_column(columns, [r"^commune_code$", r"^code_commune$", r"^codgeo$", r"^code_geo$", r"^geo$"]),
         "commune_name": select_best_column(columns, [r"^commune_name$", r"^nom_commune$", r"^libgeo$", r"^libelle_commune$", r"^commune$"]),
         "department_code": select_best_column(columns, [r"^department_code$", r"^code_departement$", r"^dep$", r"^coddep$"]),
-        "median_income": select_best_column(columns, [r"^median_income$", r"^med\d*$", r"mediane"]),
-        "d1_income": select_best_column(columns, [r"^d1_income$", r"^d1\d*$"]),
-        "d2_income": select_best_column(columns, [r"^d2_income$", r"^d2\d*$"]),
-        "d3_income": select_best_column(columns, [r"^d3_income$", r"^d3\d*$"]),
-        "d4_income": select_best_column(columns, [r"^d4_income$", r"^d4\d*$"]),
+        "median_income": select_best_column(columns, [r"^median_income$", r"^med\d*$", r"^q2\d*$", r"mediane", r"^med_sl$"]),
+        "d1_income": select_best_column(columns, [r"^d1_income$", r"^d1\d*$", r"^d1_sl$"]),
+        "d2_income": select_best_column(columns, [r"^d2_income$", r"^d2\d*$", r"^d2_sl$"]),
+        "d3_income": select_best_column(columns, [r"^d3_income$", r"^d3\d*$", r"^d3_sl$"]),
+        "d4_income": select_best_column(columns, [r"^d4_income$", r"^d4\d*$", r"^d4_sl$"]),
         "d5_income": select_best_column(columns, [r"^d5_income$", r"^d5\d*$"]),
-        "d6_income": select_best_column(columns, [r"^d6_income$", r"^d6\d*$"]),
-        "d7_income": select_best_column(columns, [r"^d7_income$", r"^d7\d*$"]),
-        "d8_income": select_best_column(columns, [r"^d8_income$", r"^d8\d*$"]),
-        "d9_income": select_best_column(columns, [r"^d9_income$", r"^d9\d*$"]),
-        "poverty_rate": select_best_column(columns, [r"^poverty_rate$", r"^tp60\d*$", r"pauvrete"]),
-        "tax_households": select_best_column(columns, [r"^tax_households$", r"^nbmenfisc\d*$"]),
-        "population": select_best_column(columns, [r"^population$", r"^nbpersmenfisc\d*$"]),
+        "d6_income": select_best_column(columns, [r"^d6_income$", r"^d6\d*$", r"^d6_sl$"]),
+        "d7_income": select_best_column(columns, [r"^d7_income$", r"^d7\d*$", r"^d7_sl$"]),
+        "d8_income": select_best_column(columns, [r"^d8_income$", r"^d8\d*$", r"^d8_sl$"]),
+        "d9_income": select_best_column(columns, [r"^d9_income$", r"^d9\d*$", r"^d9_sl$"]),
+        "poverty_rate": select_best_column(columns, [r"^poverty_rate$", r"^tp60\d*$", r"pauvrete", r"^pr_md60$"]),
+        "tax_households": select_best_column(columns, [r"^tax_households$", r"^nbmenfisc\d*$", r"^nbmen\d*$"]),
+        "population": select_best_column(columns, [r"^population$", r"^nbpersmenfisc\d*$", r"^nbpers\d*$"]),
         "year": select_best_column(columns, [r"^year$"]),
     }
 
@@ -182,6 +194,15 @@ def infer_geography_level_from_frame(frame: pd.DataFrame) -> str | None:
     return None
 
 
+def finalize_silver_columns(frame: pd.DataFrame) -> pd.DataFrame:
+    for column in STANDARD_COLUMNS:
+        if column not in frame.columns:
+            frame[column] = "" if column in {"commune_code", "commune_name", "department_code"} else pd.NA
+    for column in NUMERIC_COLUMNS:
+        frame[column] = to_numeric(frame[column]) if column in frame.columns else pd.Series(dtype="float64")
+    return frame
+
+
 def standardize_subset(frame: pd.DataFrame, geography_level: str, year: int) -> pd.DataFrame:
     detected = detect_columns(frame)
     silver = frame.copy()
@@ -211,7 +232,11 @@ def standardize_subset(frame: pd.DataFrame, geography_level: str, year: int) -> 
 
     for column in NUMERIC_COLUMNS:
         source_column = detected.get(column)
-        silver[column] = to_numeric(silver[source_column]) if source_column is not None else pd.Series([float("nan")] * len(silver), dtype="float64")
+        silver[column] = (
+            to_numeric(silver[source_column])
+            if source_column is not None
+            else pd.Series([float("nan")] * len(silver), dtype="float64")
+        )
 
     silver["year"] = year
     if silver["d5_income"].isna().all() and not silver["median_income"].isna().all():
@@ -225,23 +250,13 @@ def standardize_subset(frame: pd.DataFrame, geography_level: str, year: int) -> 
     else:
         silver = silver[silver["department_code"].ne("")].copy()
 
-    output_columns = [*frame.columns.tolist(), *[column for column in STANDARD_COLUMNS if column not in frame.columns]]
+    silver["geography_level"] = geography_level
+    output_columns = [*frame.columns.tolist(), *[column for column in STANDARD_COLUMNS if column not in frame.columns], "geography_level"]
     return silver.loc[:, dict.fromkeys(output_columns).keys()].copy()
 
 
-def main() -> None:
-    args = parse_args()
-    if pipeline_mode_for_year(args.year) == "bronze_only":
-        log(f"Year {args.year} is configured as bronze-only. Skipping silver build.")
-        return
-    bronze_path = input_path(args.year)
-    silver_path = output_path(args.year)
-    log(f"Preparing FiLoSoFi silver dataset for year {args.year}")
-
-    if not bronze_path.exists():
-        raise FileNotFoundError(f"Missing bronze dataset: {bronze_path}")
-
-    bronze = rename_columns(pd.read_parquet(bronze_path))
+def build_legacy_silver(bronze: pd.DataFrame, year: int) -> pd.DataFrame:
+    bronze = rename_columns(bronze)
     if "geography_level" not in bronze.columns:
         bronze["geography_level"] = "commune"
 
@@ -250,23 +265,129 @@ def main() -> None:
         subset = bronze[bronze["geography_level"] == geography_level].copy()
         if subset.empty:
             continue
-        frames.append(standardize_subset(subset, geography_level, args.year))
+        frames.append(standardize_subset(subset, geography_level, year))
 
     unknown_subset = bronze[~bronze["geography_level"].isin(["commune", "department"])].copy()
     if not unknown_subset.empty:
         inferred_level = infer_geography_level_from_frame(unknown_subset)
         if inferred_level is not None:
-            log(f"Inferred geography level '{inferred_level}' from bronze columns for year {args.year}")
-            frames.append(standardize_subset(unknown_subset, inferred_level, args.year))
+            log(f"Inferred geography level '{inferred_level}' from bronze columns for year {year}")
+            frames.append(standardize_subset(unknown_subset, inferred_level, year))
 
     if not frames:
         raise RuntimeError("No commune-level or department-level FiLoSoFi data found in bronze dataset")
+    return pd.concat(frames, ignore_index=True, sort=False)
 
-    silver = pd.concat(frames, ignore_index=True, sort=False)
+
+def build_historical_silver(bronze: pd.DataFrame, year: int) -> pd.DataFrame:
+    bronze = rename_columns(bronze)
+    if "table_id" not in bronze.columns:
+        raise RuntimeError("Historical FiLoSoFi bronze dataset is missing table_id")
+
+    disp = bronze[bronze["table_id"] == "disp_com"].copy()
+    if disp.empty:
+        raise RuntimeError("Historical FiLoSoFi bronze dataset is missing DISP_COM rows")
+
+    commune = standardize_subset(disp, "commune", year)
+    commune["source_generation"] = "historical"
+    commune["dispositif"] = "filosofi"
+
+    pauvres = bronze[bronze["table_id"] == "disp_pauvres_com"].copy()
+    if not pauvres.empty:
+        detected = detect_columns(pauvres)
+        code_column = detected["commune_code"]
+        poverty_column = detected["poverty_rate"]
+        if code_column is not None and poverty_column is not None:
+            poverty = pd.DataFrame(
+                {
+                    "commune_code": pauvres[code_column].fillna("").astype(str).str.strip().str.upper(),
+                    "poverty_rate_from_pauvres": to_numeric(pauvres[poverty_column]),
+                }
+            )
+            poverty = poverty[poverty["commune_code"].ne("")].drop_duplicates(subset=["commune_code"])
+            commune = commune.merge(poverty, on="commune_code", how="left")
+            if "poverty_rate" not in commune.columns:
+                commune["poverty_rate"] = pd.NA
+            commune["poverty_rate"] = commune["poverty_rate"].combine_first(commune["poverty_rate_from_pauvres"])
+            commune = commune.drop(columns=["poverty_rate_from_pauvres"])
+
+    return commune
+
+
+def build_filosofi2_silver(bronze: pd.DataFrame, year: int) -> pd.DataFrame:
+    bronze = rename_columns(bronze)
+    required_columns = {"filosofi_measure", "geo", "geo_object", "time_period", "obs_value"}
+    missing = required_columns.difference(bronze.columns)
+    if missing:
+        raise RuntimeError(f"FiLoSoFi 2 bronze dataset is missing required columns: {', '.join(sorted(missing))}")
+
+    filtered = bronze[bronze["geo_object"].isin(["COM", "DEP"])].copy()
+    if filtered.empty:
+        raise RuntimeError("FiLoSoFi 2 bronze dataset does not contain COM or DEP rows")
+
+    pivot = (
+        filtered.pivot_table(
+            index=["geo", "geo_object", "time_period"],
+            columns="filosofi_measure",
+            values="obs_value",
+            aggfunc="first",
+        )
+        .reset_index()
+        .rename_axis(None, axis=1)
+    )
+
+    silver = pd.DataFrame()
+    silver["year"] = pd.to_numeric(pivot["time_period"], errors="coerce").fillna(year).astype(int)
+    silver["geography_level"] = pivot["geo_object"].map({"COM": "commune", "DEP": "department"}).fillna("unknown")
+    silver["commune_code"] = pivot["geo"].where(silver["geography_level"] == "commune", "")
+    silver["department_code"] = pivot["geo"].where(silver["geography_level"] == "department", "")
+    missing_department = silver["department_code"].eq("") & silver["commune_code"].ne("")
+    if missing_department.any():
+        silver.loc[missing_department, "department_code"] = silver.loc[missing_department, "commune_code"].map(derive_department_code)
+    silver["commune_name"] = ""
+    silver["source_generation"] = "filosofi2"
+    silver["dispositif"] = "filosofi2"
+    silver["source_type"] = "insee_filosofi2_multigeography"
+    silver["source_file"] = str(bronze["source_file"].iloc[0]) if "source_file" in bronze.columns and not bronze.empty else ""
+    silver["extracted_file"] = str(bronze["extracted_file"].iloc[0]) if "extracted_file" in bronze.columns and not bronze.empty else ""
+    silver["geo_object"] = pivot["geo_object"]
+
+    for measure, target_column in FILOSOFI2_MEASURE_MAP.items():
+        silver[target_column] = to_numeric(pivot[measure]) if measure in pivot.columns else pd.Series([float("nan")] * len(pivot), dtype="float64")
+
+    silver["d5_income"] = silver["median_income"]
+    silver["tax_households"] = pd.Series([float("nan")] * len(silver), dtype="float64")
+    silver["population"] = pd.Series([float("nan")] * len(silver), dtype="float64")
+    return silver
+
+
+def main() -> None:
+    args = parse_args()
+    bronze_path = input_path(args.year)
+    silver_path = output_path(args.year)
+    source = source_for_year(args.year)
+    source_type = str(source.get("source_type") or "data_gouv")
+    log(f"Preparing FiLoSoFi silver dataset for year {args.year}")
+
+    if not bronze_path.exists():
+        raise FileNotFoundError(f"Missing bronze dataset: {bronze_path}")
+
+    bronze = pd.read_parquet(bronze_path)
+    if source_type == "insee_xlsx_zip":
+        silver = build_historical_silver(bronze, args.year)
+    elif source_type == "insee_filosofi2_multigeography":
+        silver = build_filosofi2_silver(bronze, args.year)
+    else:
+        silver = build_legacy_silver(bronze, args.year)
+
+    silver = finalize_silver_columns(silver)
     silver_path.parent.mkdir(parents=True, exist_ok=True)
     silver.to_parquet(silver_path, index=False)
     log(f"Silver dataset written to {silver_path}")
     log(f"Rows: {len(silver)}")
+    log(f"Years: {sorted(pd.to_numeric(silver['year'], errors='coerce').dropna().astype(int).unique().tolist())}")
+    log(f"Communes: {int(silver['commune_code'].replace('', pd.NA).dropna().nunique()) if 'commune_code' in silver.columns else 0}")
+    log(f"Departments: {int(silver['department_code'].replace('', pd.NA).dropna().nunique()) if 'department_code' in silver.columns else 0}")
 
 
 if __name__ == "__main__":
