@@ -112,6 +112,11 @@ The legacy 2017 path still uses the official `data.gouv.fr` dataset metadata and
 - `data/gold/filosofi/year=2017/filosofi_commune_indicators.parquet`
 - `data/gold/filosofi/year=2017/filosofi_department_indicators.parquet`
 
+In the harmonized gold layer:
+
+- `d2_income` to `d8_income` remain null for `2017` because they are not published in the configured source
+- `geography_name` remains null for `2017` unless a separate stable geographic referential is added later
+
 ### 2018-2021 Historical Pipeline
 
 The historical FiLoSoFi years 2018, 2019, 2020, and 2021 all use commune-level XLSX ZIP archives with six workbooks. The pipeline preserves the original archives, extracts the workbooks, then builds normalized silver and gold layers from the `DISP_COM` and `DISP_Pauvres_COM` workbooks.
@@ -201,7 +206,7 @@ Silver and gold outputs for 2018 to 2021:
 - gold department table: `data/gold/filosofi/year=YYYY/filosofi_department_indicators.parquet`
 - gold summary: `data/gold/filosofi/year=YYYY/filosofi_summary.json`
 
-For these historical years, department gold indicators are derived from commune rows because the commune archive does not include an official department table in the current configuration.
+For these historical years, department gold indicators are derived from commune rows because the commune archive does not include an official department table in the current configuration. They are marked with `indicator_source = derived_from_communes` and `is_official = false` in the harmonized gold layer.
 
 Special year-level metadata:
 
@@ -301,6 +306,62 @@ The 2023 gold layer writes:
 
 For `2023`, the department table is official because the published source already contains `DEP` rows.
 
+The harmonized `2023` commune layer keeps:
+
+- `median_income` when published
+- `poverty_rate` when published
+- commune deciles as null when the official file exposes the rows but leaves `OBS_VALUE` empty
+- `tax_households` and `population` as null because they are not published in the configured FiLoSoFi 2 source
+
+## Harmonized Gold Outputs
+
+The harmonized FiLoSoFi gold layer keeps only the indicators used by the site:
+
+- `median_income`
+- `d1_income`
+- `d2_income` to `d8_income` only when they are really published
+- `d9_income`
+- `poverty_rate`
+- `tax_households`
+- `population`
+
+Every harmonized gold table also includes:
+
+- `geography_code`
+- `geography_name`
+- `geography_level`
+- `year`
+- `dispositif`
+- `source_generation`
+- `indicator_source`
+- `is_official`
+- `methodology_version`
+- `comparable_with_previous_years`
+
+Generated outputs:
+
+- `data/gold/filosofi/commune_all_years.parquet`
+- `data/gold/filosofi/department_official/department_all_years.parquet`
+- `data/gold/filosofi/department_derived/department_all_years.parquet`
+- `data/gold/filosofi/indicator_availability.json`
+- `data/gold/filosofi/metadata.json`
+- `reports/filosofi_schema_comparison.csv`
+
+Comparability rules:
+
+- `2022` remains absent because INSEE did not publish a FiLoSoFi vintage for that year
+- `2023` is kept as `Filosofi 2` and marked as a methodological break
+- department data for `2017` and `2023` is stored under `department_official/`
+- department data for `2018` to `2021` is stored under `department_derived/`
+- `d5_income` stays null in the harmonized layer because no configured source publishes an explicit `D5`
+
+To add a future FiLoSoFi vintage:
+
+1. add the year to `config/pipeline_years.json`
+2. add the source definition to `config/filosofi_sources.json`
+3. update `config/filosofi_canonical_columns.json` with the exact published source columns
+4. rerun `python scripts/build_filosofi.py --all-configured`
+
 ### Remaining FiLoSoFi Modeling Decisions
 
 The pipeline now produces bronze, silver, and gold outputs for every configured FiLoSoFi year, but some modeling questions remain open:
@@ -347,5 +408,14 @@ gold/
 ├── filosofi/year=YYYY/
 └── commune_year/
 ```
+
+The FiLoSoFi workflow also uploads:
+
+- `gold/filosofi/commune_all_years.parquet`
+- `gold/filosofi/department_official/...`
+- `gold/filosofi/department_derived/...`
+- `gold/filosofi/indicator_availability.json`
+- `gold/filosofi/metadata.json`
+- `reports/filosofi_schema_comparison.csv`
 
 Raw files are not uploaded by default.

@@ -1,0 +1,42 @@
+const normalizeBaseUrl = (value: string | undefined): string | null => {
+  const trimmed = value?.trim()
+  if (!trimmed) {
+    return null
+  }
+  return trimmed.replace(/\/+$/, '')
+}
+
+export const DATA_ASSET_BASE_URL = normalizeBaseUrl(
+  import.meta.env.VITE_DATA_ASSET_BASE_URL,
+)
+
+export const getDataAssetUrl = (relativePath: string): string => {
+  const normalizedPath = relativePath.replace(/^\/+/, '')
+  if (DATA_ASSET_BASE_URL) {
+    return `${DATA_ASSET_BASE_URL}/${normalizedPath}`
+  }
+  return `/${normalizedPath}`
+}
+
+export const filosofiAssetUrls = {
+  metadata: () => getDataAssetUrl('gold/filosofi/metadata.json'),
+  indicatorAvailability: () =>
+    getDataAssetUrl('gold/filosofi/indicator_availability.json'),
+  communeParquet: () => getDataAssetUrl('gold/filosofi/commune_all_years.parquet'),
+  departmentOfficialParquet: () =>
+    getDataAssetUrl('gold/filosofi/department_official/department_all_years.parquet'),
+  departmentDerivedParquet: () =>
+    getDataAssetUrl('gold/filosofi/department_derived/department_all_years.parquet'),
+}
+
+export const getFilosofiParquetUrl = (
+  geographyLevel: 'commune' | 'department',
+  departmentSource: 'official' | 'derived' = 'official',
+): string => {
+  if (geographyLevel === 'commune') {
+    return filosofiAssetUrls.communeParquet()
+  }
+  return departmentSource === 'derived'
+    ? filosofiAssetUrls.departmentDerivedParquet()
+    : filosofiAssetUrls.departmentOfficialParquet()
+}

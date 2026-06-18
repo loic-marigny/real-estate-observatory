@@ -139,6 +139,106 @@ export type FilosofiSummary = {
   notes: string[]
 }
 
+export type FilosofiIndicator =
+  | 'median_income'
+  | 'd1_income'
+  | 'd2_income'
+  | 'd3_income'
+  | 'd4_income'
+  | 'd5_income'
+  | 'd6_income'
+  | 'd7_income'
+  | 'd8_income'
+  | 'd9_income'
+  | 'poverty_rate'
+  | 'tax_households'
+  | 'population'
+
+export type FilosofiGeographyLevel = 'commune' | 'department'
+export type FilosofiDepartmentSource = 'official' | 'derived'
+
+export type FilosofiMethodologyBreak = {
+  year: number
+  label: string
+  comparableToPreviousYear: boolean
+}
+
+export type FilosofiMetadata = {
+  source: string
+  generatedAt: string
+  availableYears: number[]
+  missingYears: number[]
+  methodologyBreaks: FilosofiMethodologyBreak[]
+  datasets: {
+    communeAllYears: string
+    departmentOfficialAllYears: string
+    departmentDerivedAllYears: string
+    indicatorAvailability: string
+  }
+}
+
+export type FilosofiIndicatorAvailabilityEntry = {
+  available: boolean
+  coverage: number
+  official: boolean
+  indicatorSource: string
+  comparableWithPreviousYears: boolean
+}
+
+export type FilosofiIndicatorOption = FilosofiIndicatorAvailabilityEntry & {
+  indicator: FilosofiIndicator
+  label: string
+}
+
+export type FilosofiIndicatorAvailabilityBySource = Partial<
+  Record<FilosofiIndicator, FilosofiIndicatorAvailabilityEntry>
+>
+
+export type FilosofiIndicatorAvailability = Record<
+  string,
+  {
+    commune: FilosofiIndicatorAvailabilityBySource
+    department_official: FilosofiIndicatorAvailabilityBySource
+    department_derived: FilosofiIndicatorAvailabilityBySource
+  }
+>
+
+export type FilosofiQueryParams = {
+  year: number
+  geographyLevel: FilosofiGeographyLevel
+  indicator: FilosofiIndicator
+  departmentSource?: FilosofiDepartmentSource
+  limit?: number
+  offset?: number
+  search?: string
+  sortBy?: string
+  sortDirection?: 'asc' | 'desc'
+}
+
+export type FilosofiQueryRow = {
+  geographyCode: string | null
+  geographyName: string | null
+  geographyLevel: FilosofiGeographyLevel
+  year: number | null
+  dispositif: string | null
+  sourceGeneration: string | null
+  indicatorSource: string | null
+  isOfficial: boolean | null
+  methodologyVersion: string | null
+  comparableWithPreviousYears: boolean | null
+  indicatorValue: number | null
+}
+
+export type FilosofiQueryResult = {
+  rows: FilosofiQueryRow[]
+  totalRows: number
+  limit: number
+  offset: number
+  parquetUrl: string
+  warnings: string[]
+  indicator: FilosofiIndicator
+}
+
 export type ObservatoryContent = {
   home: HomePageContent
   explorer: ExplorerPageContent

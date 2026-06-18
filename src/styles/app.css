@@ -529,6 +529,42 @@
   cursor: not-allowed;
 }
 
+.filosofi-query-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.filosofi-query-controls {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.filosofi-query-warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.filosofi-query-warning,
+.filosofi-query-error {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--color-border);
+}
+
+.filosofi-query-warning {
+  background: rgba(198, 96, 55, 0.1);
+  color: var(--color-text);
+}
+
+.filosofi-query-error {
+  background: rgba(13, 43, 64, 0.08);
+  color: var(--color-text);
+}
+
 .placeholder-block {
   min-height: 220px;
   display: grid;
@@ -924,7 +960,8 @@
 
   .dataset-selector,
   .dataset-info-card__grid,
-  .data-table__numeric-filter {
+  .data-table__numeric-filter,
+  .filosofi-query-controls {
     grid-template-columns: 1fr;
   }
 

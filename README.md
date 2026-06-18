@@ -1,73 +1,99 @@
-# React + TypeScript + Vite
+# Real Estate Observatory Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend React + TypeScript + Vite for the real-estate observatory.
 
-Currently, two official plugins are available:
+## Data Access
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+The application now uses two complementary data access modes:
 
-## React Compiler
+- lightweight JSON metadata for UI orchestration
+- DuckDB-Wasm in the browser for FiLoSoFi Parquet queries
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+FiLoSoFi UI orchestration uses:
 
-## Expanding the ESLint configuration
+- `gold/filosofi/metadata.json`
+- `gold/filosofi/indicator_availability.json`
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+FiLoSoFi tabular queries use DuckDB-Wasm against:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- `gold/filosofi/commune_all_years.parquet`
+- `gold/filosofi/department_official/department_all_years.parquet`
+- `gold/filosofi/department_derived/department_all_years.parquet`
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+DuckDB-Wasm was chosen because the site remains a static frontend on GitHub Pages. This keeps the first analytical access layer inside the browser without introducing a backend API at this stage.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Configuration
+
+Set the public base URL for R2 assets with:
+
+```bash
+VITE_DATA_ASSET_BASE_URL=https://<public-r2-host>
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Example expected runtime layout:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```text
+https://<public-r2-host>/gold/filosofi/metadata.json
+https://<public-r2-host>/gold/filosofi/indicator_availability.json
+https://<public-r2-host>/gold/filosofi/commune_all_years.parquet
 ```
+
+If `VITE_DATA_ASSET_BASE_URL` is not set, the app falls back to root-relative paths such as `/gold/filosofi/...`.
+
+## Required R2 Settings
+
+DuckDB-Wasm reads remote Parquet files over HTTP. Cloudflare R2 must therefore expose:
+
+- public `GET`, `HEAD`, and `OPTIONS`
+- CORS allowing the GitHub Pages origin
+- support for `Range` requests
+- exposed headers including `Accept-Ranges`, `Content-Length`, `Content-Range`, and `ETag`
+
+Without that configuration, FiLoSoFi queries in the browser will fail even if the files exist in the bucket.
+
+## FiLoSoFi Rules
+
+The frontend does not hardcode FiLoSoFi years or indicators.
+
+Availability is determined from `metadata.json` and `indicator_availability.json`, including:
+
+- `2022` excluded
+- `D2` to `D8` absent in `2017`
+- commune deciles absent in `2023`
+- official and derived department datasets kept separate
+- methodological break warning for `2023` and FiLoSoFi 2
+
+To add a future vintage, update the pipeline outputs and metadata on R2. The interface should adapt without hardcoded year changes.
+
+## Commands
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the app:
+
+```bash
+npm run dev
+```
+
+Run tests:
+
+```bash
+npm test
+```
+
+Build the frontend:
+
+```bash
+npm run build
+```
+
+## Current Limits
+
+- DuckDB-Wasm is only used for FiLoSoFi at this stage
+- no temporal charts are implemented yet
+- no backend filtering API exists yet
+- no advanced cache beyond in-memory metadata caching is implemented

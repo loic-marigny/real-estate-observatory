@@ -1,0 +1,297 @@
+from __future__ import annotations
+
+import unittest
+
+import pandas as pd
+
+from data.scripts.build_filosofi_gold import (
+    build_commune_frame,
+    build_department_frame,
+    build_indicator_availability_payload,
+    build_metadata_payload,
+    canonical_mapping,
+    derive_department_frame_from_communes,
+)
+
+
+class FiLoSoFiGoldTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.mapping = canonical_mapping()
+
+    def test_2017_commune_keeps_d2_to_d8_and_name_null(self) -> None:
+        silver = pd.DataFrame(
+            {
+                "commune_code": ["01001"],
+                "commune_name": ["Abergement"],
+                "median_income": [23310.0],
+                "d1_income": [12000.0],
+                "d2_income": [15000.0],
+                "d3_income": [16000.0],
+                "d4_income": [17000.0],
+                "d5_income": [23310.0],
+                "d6_income": [26000.0],
+                "d7_income": [28000.0],
+                "d8_income": [30000.0],
+                "d9_income": [34350.0],
+                "poverty_rate": [17.0],
+                "tax_households": [317.0],
+                "population": [796.0],
+            }
+        )
+
+        frame = build_commune_frame(silver, 2017, "filosofi", "legacy", self.mapping)
+
+        self.assertEqual(frame.loc[0, "geography_code"], "01001")
+        self.assertTrue(pd.isna(frame.loc[0, "geography_name"]))
+        self.assertTrue(pd.isna(frame.loc[0, "d2_income"]))
+        self.assertTrue(pd.isna(frame.loc[0, "d8_income"]))
+        self.assertTrue(pd.isna(frame.loc[0, "d5_income"]))
+        self.assertEqual(frame.loc[0, "indicator_source"], "official_insee")
+        self.assertTrue(bool(frame.loc[0, "is_official"]))
+
+    def test_2023_commune_keeps_deciles_and_counts_null_when_unpublished(self) -> None:
+        silver = pd.DataFrame(
+            {
+                "commune_code": ["01001"],
+                "commune_name": [""],
+                "median_income": [22000.0],
+                "d1_income": [pd.NA],
+                "d2_income": [pd.NA],
+                "d3_income": [pd.NA],
+                "d4_income": [pd.NA],
+                "d5_income": [22000.0],
+                "d6_income": [pd.NA],
+                "d7_income": [pd.NA],
+                "d8_income": [pd.NA],
+                "d9_income": [pd.NA],
+                "poverty_rate": [14.2],
+                "tax_households": [pd.NA],
+                "population": [pd.NA],
+            }
+        )
+
+        frame = build_commune_frame(silver, 2023, "filosofi2", "filosofi2", self.mapping)
+
+        self.assertEqual(frame.loc[0, "median_income"], 22000.0)
+        self.assertTrue(pd.isna(frame.loc[0, "d1_income"]))
+        self.assertTrue(pd.isna(frame.loc[0, "d9_income"]))
+        self.assertTrue(pd.isna(frame.loc[0, "d5_income"]))
+        self.assertTrue(pd.isna(frame.loc[0, "tax_households"]))
+        self.assertTrue(pd.isna(frame.loc[0, "population"]))
+        self.assertFalse(bool(frame.loc[0, "comparable_with_previous_years"]))
+
+    def test_department_frames_mark_official_and_derived_series(self) -> None:
+        commune_frame = pd.DataFrame(
+            {
+                "geography_code": pd.Series(["01001", "01002"], dtype="string"),
+                "geography_name": pd.Series(["A", "B"], dtype="string"),
+                "geography_level": pd.Series(["commune", "commune"], dtype="string"),
+                "year": pd.Series([2018, 2018], dtype="Int64"),
+                "dispositif": pd.Series(["filosofi", "filosofi"], dtype="string"),
+                "source_generation": pd.Series(["historical", "historical"], dtype="string"),
+                "indicator_source": pd.Series(["official_insee", "official_insee"], dtype="string"),
+                "is_official": pd.Series([True, True], dtype="boolean"),
+                "methodology_version": pd.Series(["filosofi_v1", "filosofi_v1"], dtype="string"),
+                "comparable_with_previous_years": pd.Series([True, True], dtype="boolean"),
+                "median_income": pd.Series([22000.0, 24000.0], dtype="Float64"),
+                "d1_income": pd.Series([12000.0, 13000.0], dtype="Float64"),
+                "d2_income": pd.Series([15000.0, 16000.0], dtype="Float64"),
+                "d3_income": pd.Series([18000.0, 19000.0], dtype="Float64"),
+                "d4_income": pd.Series([20000.0, 21000.0], dtype="Float64"),
+                "d5_income": pd.Series([pd.NA, pd.NA], dtype="Float64"),
+                "d6_income": pd.Series([26000.0, 27000.0], dtype="Float64"),
+                "d7_income": pd.Series([29000.0, 30000.0], dtype="Float64"),
+                "d8_income": pd.Series([33000.0, 34000.0], dtype="Float64"),
+                "d9_income": pd.Series([39000.0, 40000.0], dtype="Float64"),
+                "poverty_rate": pd.Series([14.5, 10.2], dtype="Float64"),
+                "tax_households": pd.Series([10.0, 20.0], dtype="Float64"),
+                "population": pd.Series([25.0, 40.0], dtype="Float64"),
+            }
+        )
+
+        derived = derive_department_frame_from_communes(commune_frame, 2018, "filosofi")
+        self.assertEqual(derived.loc[0, "indicator_source"], "derived_from_communes")
+        self.assertFalse(bool(derived.loc[0, "is_official"]))
+        self.assertTrue(pd.isna(derived.loc[0, "d5_income"]))
+
+        department_silver = pd.DataFrame(
+            {
+                "department_code": ["01"],
+                "median_income": [25000.0],
+                "d1_income": [14000.0],
+                "d2_income": [16000.0],
+                "d3_income": [18000.0],
+                "d4_income": [20000.0],
+                "d5_income": [25000.0],
+                "d6_income": [28000.0],
+                "d7_income": [30000.0],
+                "d8_income": [33000.0],
+                "d9_income": [39000.0],
+                "poverty_rate": [12.5],
+                "tax_households": [pd.NA],
+                "population": [pd.NA],
+            }
+        )
+        official, indicator_source = build_department_frame(
+            department_silver,
+            commune_frame.iloc[0:0].copy(),
+            2023,
+            "filosofi2",
+            "filosofi2",
+            self.mapping,
+        )
+        self.assertEqual(indicator_source, "official_insee")
+        self.assertTrue(bool(official.loc[0, "is_official"]))
+        self.assertTrue(pd.isna(official.loc[0, "d5_income"]))
+
+    def test_indicator_availability_and_metadata_capture_missing_2022(self) -> None:
+        commune_2017 = build_commune_frame(
+            pd.DataFrame(
+                {
+                    "commune_code": ["01001"],
+                    "commune_name": ["A"],
+                    "median_income": [23310.0],
+                    "d1_income": [12000.0],
+                    "d9_income": [34350.0],
+                    "poverty_rate": [17.0],
+                    "tax_households": [317.0],
+                    "population": [796.0],
+                }
+            ),
+            2017,
+            "filosofi",
+            "legacy",
+            self.mapping,
+        )
+        commune_2023 = build_commune_frame(
+            pd.DataFrame(
+                {
+                    "commune_code": ["01001"],
+                    "commune_name": [""],
+                    "median_income": [22000.0],
+                    "d1_income": [pd.NA],
+                    "d9_income": [pd.NA],
+                    "poverty_rate": [14.2],
+                    "tax_households": [pd.NA],
+                    "population": [pd.NA],
+                }
+            ),
+            2023,
+            "filosofi2",
+            "filosofi2",
+            self.mapping,
+        )
+        department_2017, _ = build_department_frame(
+            pd.DataFrame(
+                {
+                    "department_code": ["01"],
+                    "median_income": [24000.0],
+                    "d1_income": [13000.0],
+                    "d9_income": [38000.0],
+                    "poverty_rate": [15.0],
+                    "tax_households": [1000.0],
+                    "population": [2500.0],
+                }
+            ),
+            commune_2017.iloc[0:0].copy(),
+            2017,
+            "filosofi",
+            "legacy",
+            self.mapping,
+        )
+        department_derived = derive_department_frame_from_communes(
+            pd.DataFrame(
+                {
+                    "geography_code": pd.Series(["01001"], dtype="string"),
+                    "geography_name": pd.Series(["A"], dtype="string"),
+                    "geography_level": pd.Series(["commune"], dtype="string"),
+                    "year": pd.Series([2018], dtype="Int64"),
+                    "dispositif": pd.Series(["filosofi"], dtype="string"),
+                    "source_generation": pd.Series(["historical"], dtype="string"),
+                    "indicator_source": pd.Series(["official_insee"], dtype="string"),
+                    "is_official": pd.Series([True], dtype="boolean"),
+                    "methodology_version": pd.Series(["filosofi_v1"], dtype="string"),
+                    "comparable_with_previous_years": pd.Series([True], dtype="boolean"),
+                    "median_income": pd.Series([22000.0], dtype="Float64"),
+                    "d1_income": pd.Series([12000.0], dtype="Float64"),
+                    "d2_income": pd.Series([15000.0], dtype="Float64"),
+                    "d3_income": pd.Series([18000.0], dtype="Float64"),
+                    "d4_income": pd.Series([20000.0], dtype="Float64"),
+                    "d5_income": pd.Series([pd.NA], dtype="Float64"),
+                    "d6_income": pd.Series([26000.0], dtype="Float64"),
+                    "d7_income": pd.Series([29000.0], dtype="Float64"),
+                    "d8_income": pd.Series([33000.0], dtype="Float64"),
+                    "d9_income": pd.Series([39000.0], dtype="Float64"),
+                    "poverty_rate": pd.Series([14.5], dtype="Float64"),
+                    "tax_households": pd.Series([10.0], dtype="Float64"),
+                    "population": pd.Series([25.0], dtype="Float64"),
+                }
+            ),
+            2018,
+            "filosofi",
+        )
+
+        availability = build_indicator_availability_payload(
+            [commune_2017, commune_2023],
+            [department_2017],
+            [department_derived],
+        )
+        self.assertFalse(availability["2017"]["commune"]["d2_income"]["available"])
+        self.assertFalse(availability["2023"]["commune"]["d1_income"]["available"])
+        self.assertTrue(availability["2023"]["commune"]["median_income"]["available"])
+        self.assertFalse(availability["2018"]["department_derived"]["median_income"]["official"])
+
+        metadata = build_metadata_payload(
+            [commune_2017, commune_2023],
+            [department_2017],
+            [department_derived],
+        )
+        self.assertIn(2022, metadata["missing_years"])
+
+    def test_harmonized_schema_is_stable_and_unique(self) -> None:
+        frame_2018 = build_commune_frame(
+            pd.DataFrame(
+                {
+                    "commune_code": ["01001"],
+                    "commune_name": ["A"],
+                    "median_income": [22000.0],
+                    "d1_income": [12000.0],
+                    "d2_income": [15000.0],
+                    "d3_income": [18000.0],
+                    "d4_income": [20000.0],
+                    "d6_income": [26000.0],
+                    "d7_income": [29000.0],
+                    "d8_income": [33000.0],
+                    "d9_income": [39000.0],
+                    "poverty_rate": [14.5],
+                    "tax_households": [10.0],
+                    "population": [25.0],
+                }
+            ),
+            2018,
+            "filosofi",
+            "historical",
+            self.mapping,
+        )
+        frame_2023 = build_commune_frame(
+            pd.DataFrame(
+                {
+                    "commune_code": ["01002"],
+                    "commune_name": [""],
+                    "median_income": [23000.0],
+                    "poverty_rate": [10.2],
+                }
+            ),
+            2023,
+            "filosofi2",
+            "filosofi2",
+            self.mapping,
+        )
+
+        self.assertEqual(frame_2018.dtypes.astype(str).to_dict(), frame_2023.dtypes.astype(str).to_dict())
+        combined = pd.concat([frame_2018, frame_2023], ignore_index=True)
+        self.assertEqual(int(combined.duplicated(["geography_code", "year"]).sum()), 0)
+
+
+if __name__ == "__main__":
+    unittest.main()
