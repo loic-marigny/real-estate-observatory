@@ -1,71 +1,85 @@
-# Real Estate Observatory Frontend
+# Real Estate Observatory
 
-Frontend React + TypeScript + Vite for the real-estate observatory.
+Observatory project for French real-estate data engineering and analytics.
 
-## Data Access
+The repository combines:
 
-The application now uses two complementary data access modes:
+- a static frontend built with Vite, React and TypeScript
+- Python pipelines for DVF and FiLoSoFi ingestion and transformation
+- Cloudflare R2 for publishing processed artifacts
+- DuckDB-Wasm in the browser for querying FiLoSoFi Parquet files directly
 
-- lightweight JSON metadata for UI orchestration
-- DuckDB-Wasm in the browser for FiLoSoFi Parquet queries
+There is no additional application backend. The frontend reads local JSON files from `public/data/` and remote FiLoSoFi metadata / Parquet artifacts from R2.
 
-FiLoSoFi UI orchestration uses:
+## Architecture
+
+### Frontend
+
+- `src/`: React application
+- `public/data/`: versioned JSON files consumed directly by the frontend
+- `src/services/dataAssetConfig.ts`: builds remote FiLoSoFi asset URLs from `VITE_DATA_ASSET_BASE_URL`
+- `src/services/filosofiDataService.ts`: reads FiLoSoFi metadata and queries remote Parquet files through DuckDB-Wasm
+
+### Data pipelines
+
+- `scripts/`: orchestration wrappers and R2 upload utility
+- `data/scripts/`: dataset-specific pipeline steps
+- `config/`: years, FiLoSoFi source definitions and canonical mappings
+
+### Data layers
+
+The pipelines use a multi-year directory structure:
+
+```text
+data/
+├── raw/<dataset>/year=YYYY/
+├── bronze/<dataset>/year=YYYY/
+├── silver/<dataset>/year=YYYY/
+└── gold/<dataset>/year=YYYY/
+```
+
+FiLoSoFi also produces consolidated gold files:
+
+```text
+data/gold/filosofi/
+├── commune_all_years.parquet
+├── department_official/department_all_years.parquet
+├── department_derived/department_all_years.parquet
+├── metadata.json
+└── indicator_availability.json
+```
+
+## Data sources
+
+### DVF
+
+- Source: Demandes de valeurs foncieres
+- Producer: DGFiP / Etalab
+- Use: residential transactions, prices, departmental and commune indicators
+
+### FiLoSoFi
+
+- Source: INSEE FiLoSoFi / FiLoSoFi 2
+- Use: income distribution and poverty indicators
+- Multi-year coverage configured today: `2017`, `2018`, `2019`, `2020`, `2021`, `2023`
+- `2022` is intentionally absent because INSEE did not publish a FiLoSoFi millesime for that year
+
+## Multi-year behavior
+
+The project is organized around `year=YYYY` partitions for local raw, bronze, silver and yearly gold outputs.
+
+The frontend does not hardcode FiLoSoFi years or indicators. It is driven by:
 
 - `gold/filosofi/metadata.json`
 - `gold/filosofi/indicator_availability.json`
 
-FiLoSoFi tabular queries use DuckDB-Wasm against:
+FiLoSoFi analytical queries use:
 
 - `gold/filosofi/commune_all_years.parquet`
 - `gold/filosofi/department_official/department_all_years.parquet`
 - `gold/filosofi/department_derived/department_all_years.parquet`
 
-DuckDB-Wasm was chosen because the site remains a static frontend on GitHub Pages. This keeps the first analytical access layer inside the browser without introducing a backend API at this stage.
-
-## Configuration
-
-Set the public base URL for R2 assets with:
-
-```bash
-VITE_DATA_ASSET_BASE_URL=https://<public-r2-host>
-```
-
-Example expected runtime layout:
-
-```text
-https://<public-r2-host>/gold/filosofi/metadata.json
-https://<public-r2-host>/gold/filosofi/indicator_availability.json
-https://<public-r2-host>/gold/filosofi/commune_all_years.parquet
-```
-
-If `VITE_DATA_ASSET_BASE_URL` is not set, the app falls back to root-relative paths such as `/gold/filosofi/...`.
-
-## Required R2 Settings
-
-DuckDB-Wasm reads remote Parquet files over HTTP. Cloudflare R2 must therefore expose:
-
-- public `GET`, `HEAD`, and `OPTIONS`
-- CORS allowing the GitHub Pages origin
-- support for `Range` requests
-- exposed headers including `Accept-Ranges`, `Content-Length`, `Content-Range`, and `ETag`
-
-Without that configuration, FiLoSoFi queries in the browser will fail even if the files exist in the bucket.
-
-## FiLoSoFi Rules
-
-The frontend does not hardcode FiLoSoFi years or indicators.
-
-Availability is determined from `metadata.json` and `indicator_availability.json`, including:
-
-- `2022` excluded
-- `D2` to `D8` absent in `2017`
-- commune deciles absent in `2023`
-- official and derived department datasets kept separate
-- methodological break warning for `2023` and FiLoSoFi 2
-
-To add a future vintage, update the pipeline outputs and metadata on R2. The interface should adapt without hardcoded year changes.
-
-## Commands
+## Frontend setup
 
 Install dependencies:
 
@@ -73,27 +87,109 @@ Install dependencies:
 npm install
 ```
 
-Run the app:
+Create a local environment file from `.env.example` and set:
+
+```bash
+VITE_DATA_ASSET_BASE_URL=https://example.r2.dev/<public-prefix>
+```
+
+Run locally:
 
 ```bash
 npm run dev
 ```
 
-Run tests:
-
-```bash
-npm test
-```
-
-Build the frontend:
+Build:
 
 ```bash
 npm run build
 ```
 
-## Current Limits
+Tests:
 
-- DuckDB-Wasm is only used for FiLoSoFi at this stage
-- no temporal charts are implemented yet
-- no backend filtering API exists yet
-- no advanced cache beyond in-memory metadata caching is implemented
+```bash
+npm test
+python -m unittest discover -s tests
+```
+
+## Frontend environment variable
+
+### `VITE_DATA_ASSET_BASE_URL`
+
+Purpose:
+
+- base public URL used by the frontend to reach FiLoSoFi metadata and Parquet files on R2
+
+Behavior:
+
+- the code trims a trailing slash automatically
+- the code then appends paths such as `gold/filosofi/metadata.json`
+- if the public R2 URL includes a path prefix, that prefix must be part of `VITE_DATA_ASSET_BASE_URL`
+
+Example:
+
+```bash
+VITE_DATA_ASSET_BASE_URL=https://example.r2.dev/real-estate-portfolio
+```
+
+Then the frontend will request:
+
+```text
+https://example.r2.dev/real-estate-portfolio/gold/filosofi/metadata.json
+https://example.r2.dev/real-estate-portfolio/gold/filosofi/indicator_availability.json
+https://example.r2.dev/real-estate-portfolio/gold/filosofi/commune_all_years.parquet
+```
+
+If `VITE_DATA_ASSET_BASE_URL` is not set, the frontend falls back to root-relative paths such as `/gold/filosofi/metadata.json`.
+
+Do not put secrets in any `VITE_` variable.
+
+## Files consumed by the frontend
+
+### Local versioned files
+
+The frontend reads these files directly from the repository:
+
+- `public/data/dvf_summary.json`
+- `public/data/dvf_preview.json`
+- `public/data/filosofi_summary.json`
+- `public/data/filosofi_preview.json`
+- `public/data/departements.geojson`
+
+### Remote R2 files
+
+The frontend expects FiLoSoFi artifacts under the public base URL described above:
+
+- `gold/filosofi/metadata.json`
+- `gold/filosofi/indicator_availability.json`
+- `gold/filosofi/commune_all_years.parquet`
+- `gold/filosofi/department_official/department_all_years.parquet`
+- `gold/filosofi/department_derived/department_all_years.parquet`
+
+## Cloudflare R2
+
+The data workflows upload processed artifacts to R2 with these prefixes:
+
+- `silver/dvf`
+- `silver/filosofi`
+- `gold/dvf`
+- `gold/filosofi`
+- `gold/commune_year`
+- `public/data`
+- `reports`
+
+DuckDB-Wasm requires public access, CORS and `Range` support on the published Parquet files.
+
+## Validation commands
+
+Main validation commands for the repository:
+
+```bash
+npm run build
+npm test
+python -m unittest discover -s tests
+```
+
+## More documentation
+
+Pipeline usage, multi-year layout, FiLoSoFi source configuration and R2 upload details are documented in [data/README.md](data/README.md).
