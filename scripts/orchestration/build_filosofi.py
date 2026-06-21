@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import subprocess
 import sys
 from pathlib import Path
@@ -10,28 +9,11 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from scripts.shared.pipeline_config import load_pipeline_config
+from scripts.shared.pipeline_config import load_filosofi_catalog
 
 
 def log(message: str) -> None:
     print(f"[build_filosofi] {message}")
-
-
-def load_years() -> list[int]:
-    return load_pipeline_config()["filosofi_years"]
-
-
-def load_sources() -> dict[str, dict[str, object]]:
-    config_path = ROOT_DIR / "config" / "filosofi_sources.json"
-    payload = json.loads(config_path.read_text(encoding="utf-8"))
-    sources = payload.get("sources", {})
-    if not isinstance(sources, dict):
-        raise RuntimeError("Invalid FiLoSoFi source configuration")
-    return {
-        str(year): source
-        for year, source in sources.items()
-        if isinstance(source, dict)
-    }
 
 
 def run_step(*args: str) -> None:
@@ -51,26 +33,28 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    configured_years = load_years()
-    source_config = load_sources()
+    catalog = load_filosofi_catalog()
     if args.all_configured:
-        years = configured_years
+        years = catalog.enabled_years
     elif args.years:
         years = [int(year) for year in args.years]
     else:
         raise SystemExit("Provide --year or --all-configured")
 
-    if not years:
+    if args.all_configured and not years:
         raise SystemExit("No FiLoSoFi years configured")
+
+    for year in years:
+        catalog.get_source(year, allow_disabled=not args.all_configured)
 
     full_pipeline_years = [
         year
         for year in years
-        if str(source_config.get(str(year), {}).get("pipeline_mode", "full_pipeline")) == "full_pipeline"
+        if str(catalog.get_source(year, allow_disabled=True).get("pipeline_mode", "full_pipeline")) == "full_pipeline"
     ]
     latest_publishable_year = max(full_pipeline_years) if full_pipeline_years else None
     for year in years:
-        source = source_config.get(str(year), {})
+        source = catalog.get_source(year, allow_disabled=True)
         pipeline_mode = str(source.get("pipeline_mode", "full_pipeline"))
         publish_public = year == latest_publishable_year and not args.skip_public
         year_args = ["--year", str(year), *(["--force"] if args.force else [])]

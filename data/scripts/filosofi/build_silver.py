@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import argparse
-import json
 import re
+import sys
 import unicodedata
 from pathlib import Path
 
@@ -10,6 +10,11 @@ import pandas as pd
 
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from scripts.shared.pipeline_config import load_filosofi_catalog
+
 CONFIG_PATH = ROOT_DIR / "config" / "filosofi_sources.json"
 STANDARD_COLUMNS = [
     "commune_code",
@@ -78,14 +83,7 @@ def output_path(year: int) -> Path:
 
 
 def source_for_year(year: int) -> dict[str, object]:
-    payload = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-    sources = payload.get("sources", {})
-    if not isinstance(sources, dict):
-        raise RuntimeError("Invalid FiLoSoFi source configuration")
-    source = sources.get(str(year))
-    if not isinstance(source, dict):
-        raise RuntimeError(f"FiLoSoFi year {year} is not configured")
-    return source
+    return load_filosofi_catalog(CONFIG_PATH).get_source(year, allow_disabled=True)
 
 
 def normalize_name(value: str) -> str:

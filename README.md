@@ -68,6 +68,7 @@ data/gold/filosofi/
 - Use: income distribution and poverty indicators
 - Multi-year coverage configured today: `2017`, `2018`, `2019`, `2020`, `2021`, `2023`
 - `2022` is intentionally absent because INSEE did not publish a FiLoSoFi millesime for that year
+- FiLoSoFi years, source definitions, activation flags and the default year are all centralized in `config/filosofi_sources.json`
 
 ## Multi-year behavior
 

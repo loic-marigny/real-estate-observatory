@@ -38,18 +38,26 @@ Locally generated raw, bronze, silver and gold artifacts are ignored by Git.
 
 ### `config/pipeline_years.json`
 
-Defines the years to process for each dataset.
+Defines only the DVF years to process.
 
 Current configured values:
 
 - DVF: `2020`, `2021`, `2022`, `2023`, `2024`
-- FiLoSoFi: `2017`, `2018`, `2019`, `2020`, `2021`, `2023`
 
 ### `config/filosofi_sources.json`
 
-Defines the FiLoSoFi source per year:
+Defines the FiLoSoFi catalog and is now the single source of truth for:
+
+- available years
+- enabled years
+- default year
+- source metadata per year
+
+The file contains:
 
 - source type
+- enabled flag
+- default year
 - official source page
 - archive or discovered file URL
 - publication metadata

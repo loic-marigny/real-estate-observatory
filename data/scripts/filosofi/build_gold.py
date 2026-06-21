@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -9,8 +10,12 @@ import pandas as pd
 
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from scripts.shared.pipeline_config import load_filosofi_catalog
+
 FILOSOFI_CONFIG_PATH = ROOT_DIR / "config" / "filosofi_sources.json"
-PIPELINE_YEARS_PATH = ROOT_DIR / "config" / "pipeline_years.json"
 CANONICAL_MAPPING_PATH = ROOT_DIR / "config" / "filosofi_canonical_columns.json"
 REPORTS_DIR = ROOT_DIR / "reports"
 GOLD_ROOT = ROOT_DIR / "data" / "gold" / "filosofi"
@@ -118,21 +123,11 @@ def read_json(path: Path) -> dict[str, object]:
 
 
 def source_for_year(year: int) -> dict[str, object]:
-    sources = read_json(FILOSOFI_CONFIG_PATH).get("sources", {})
-    if not isinstance(sources, dict):
-        raise RuntimeError("Invalid FiLoSoFi source configuration")
-    source = sources.get(str(year))
-    if not isinstance(source, dict):
-        raise RuntimeError(f"FiLoSoFi year {year} is not configured")
-    return source
+    return load_filosofi_catalog(FILOSOFI_CONFIG_PATH).get_source(year, allow_disabled=True)
 
 
 def configured_years() -> list[int]:
-    payload = read_json(PIPELINE_YEARS_PATH)
-    years = payload.get("filosofi_years", [])
-    if not isinstance(years, list):
-        raise RuntimeError("Invalid FiLoSoFi years configuration")
-    return [int(year) for year in years]
+    return load_filosofi_catalog(FILOSOFI_CONFIG_PATH).enabled_years
 
 
 def canonical_mapping() -> dict[str, dict[str, str | None]]:

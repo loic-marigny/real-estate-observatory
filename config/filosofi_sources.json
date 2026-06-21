@@ -1,12 +1,14 @@
 {
   "dataset": "filosofi",
-  "years": [2017, 2018, 2019, 2020, 2021, 2023],
+  "default_year": 2023,
   "sources": {
     "2017": {
+      "enabled": true,
       "source_type": "data_gouv",
       "pipeline_mode": "full_pipeline"
     },
     "2018": {
+      "enabled": true,
       "source_type": "insee_xlsx_zip",
       "pipeline_mode": "full_pipeline",
       "dispositif": "filosofi",
@@ -24,6 +26,7 @@
       ]
     },
     "2019": {
+      "enabled": true,
       "source_type": "insee_xlsx_zip",
       "pipeline_mode": "full_pipeline",
       "dispositif": "filosofi",
@@ -41,6 +44,7 @@
       ]
     },
     "2020": {
+      "enabled": true,
       "source_type": "insee_xlsx_zip",
       "pipeline_mode": "full_pipeline",
       "dispositif": "filosofi",
@@ -62,6 +66,7 @@
       ]
     },
     "2021": {
+      "enabled": true,
       "source_type": "insee_xlsx_zip",
       "pipeline_mode": "full_pipeline",
       "dispositif": "filosofi",
@@ -82,6 +87,7 @@
       ]
     },
     "2023": {
+      "enabled": true,
       "source_type": "insee_filosofi2_multigeography",
       "pipeline_mode": "full_pipeline",
       "dispositif": "filosofi2",

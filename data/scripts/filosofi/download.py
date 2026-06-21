@@ -7,6 +7,7 @@ import io
 import json
 import re
 import shutil
+import sys
 import unicodedata
 import zipfile
 from datetime import UTC, datetime
@@ -24,6 +25,11 @@ DATASET_API_URL = (
 )
 CONFIG_PATH = Path(__file__).resolve().parents[3] / "config" / "filosofi_sources.json"
 ROOT_DIR = Path(__file__).resolve().parents[3]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from scripts.shared.pipeline_config import load_filosofi_catalog
+
 RAW_DATA_DIR = ROOT_DIR / "data" / "raw" / "filosofi"
 BRONZE_DATA_DIR = ROOT_DIR / "data" / "bronze" / "filosofi"
 KNOWN_FORMATS = ("csv", "xlsx", "xls")
@@ -63,20 +69,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--force", action="store_true")
     return parser.parse_args()
 
-
-def load_source_config() -> dict[str, object]:
-    return json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-
-
 def source_for_year(year: int) -> dict[str, object]:
-    config = load_source_config()
-    sources = config.get("sources")
-    if not isinstance(sources, dict):
-        raise RuntimeError("Invalid FiLoSoFi source configuration: missing sources map")
-    source = sources.get(str(year))
-    if not isinstance(source, dict):
-        raise RuntimeError(f"FiLoSoFi year {year} is not configured")
-    return source
+    return load_filosofi_catalog(CONFIG_PATH).get_source(year, allow_disabled=True)
 
 
 def parse_last_modified(value: str | None) -> datetime:
