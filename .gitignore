@@ -7,10 +7,29 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+node_modules/
+dist/
+dist-ssr/
+
+# Local environment files
+.env
+.env.*
+!.env.example
 *.local
+.venv/
+venv/
+env/
+ENV/
+
+# Python caches and coverage
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
 # Editor directories and files
 .vscode/*
@@ -29,11 +48,8 @@ data/bronze/
 data/silver/
 data/gold/
 data/tmp_filosofi_inspect/
+reports/
 config/*.local.json
-*.csv
-*.txt
-*.zip
-*.parquet
 !requirements.txt
 
 # Keep folder structure
