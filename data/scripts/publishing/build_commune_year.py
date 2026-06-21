@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 
 
-ROOT_DIR = Path(__file__).resolve().parents[2]
+ROOT_DIR = Path(__file__).resolve().parents[3]
 DVF_GOLD_DIR = ROOT_DIR / "data" / "gold" / "dvf"
 FILOSOFI_GOLD_DIR = ROOT_DIR / "data" / "gold" / "filosofi"
 OUTPUT_DIR = ROOT_DIR / "data" / "gold" / "commune_year"

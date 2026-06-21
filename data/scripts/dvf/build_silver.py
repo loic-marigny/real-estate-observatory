@@ -8,7 +8,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 
-ROOT_DIR = Path(__file__).resolve().parents[2]
+ROOT_DIR = Path(__file__).resolve().parents[3]
 CHUNK_SIZE_ROWS = 200_000
 
 PROPERTY_TYPES = {"Maison", "Appartement"}
@@ -94,7 +94,7 @@ def main() -> None:
     log(f"Preparing silver DVF dataset for year {args.year}")
 
     if not input_path.exists():
-        raise FileNotFoundError(f"Missing bronze dataset: {input_path}. Run data/scripts/build_bronze.py first.")
+        raise FileNotFoundError(f"Missing bronze dataset: {input_path}. Run python -m data.scripts.dvf.build_bronze first.")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     temp_output_path = output_path.with_suffix(".parquet.part")

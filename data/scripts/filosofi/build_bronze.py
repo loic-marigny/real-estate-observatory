@@ -12,7 +12,7 @@ from pathlib import Path
 import pandas as pd
 
 
-ROOT_DIR = Path(__file__).resolve().parents[2]
+ROOT_DIR = Path(__file__).resolve().parents[3]
 CONFIG_PATH = ROOT_DIR / "config" / "filosofi_sources.json"
 SHEET_NS = {
     "a": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
@@ -120,7 +120,7 @@ def read_tabular_payload(payload: bytes, extension: str) -> tuple[pd.DataFrame, 
 def list_raw_candidates(year: int) -> list[Path]:
     directory = raw_dir(year)
     if not directory.exists():
-        raise FileNotFoundError(f"Missing raw data directory: {directory}. Run data/scripts/download_filosofi.py first.")
+        raise FileNotFoundError(f"Missing raw data directory: {directory}. Run python -m data.scripts.filosofi.download first.")
     return sorted(
         path
         for path in directory.iterdir()
@@ -321,7 +321,7 @@ def select_historical_workbooks(directory: Path) -> list[Path]:
 def build_historical_bronze(year: int, source_type: str) -> pd.DataFrame:
     directory = extracted_dir(year)
     if not directory.exists():
-        raise FileNotFoundError(f"Missing bronze extracted directory: {directory}. Run data/scripts/download_filosofi.py first.")
+        raise FileNotFoundError(f"Missing bronze extracted directory: {directory}. Run python -m data.scripts.filosofi.download first.")
 
     frames: list[pd.DataFrame] = []
     for workbook_path in select_historical_workbooks(directory):
@@ -343,7 +343,7 @@ def select_filosofi2_data_file(directory: Path) -> Path:
 def build_filosofi2_bronze(year: int, source_type: str) -> pd.DataFrame:
     directory = extracted_dir(year)
     if not directory.exists():
-        raise FileNotFoundError(f"Missing bronze extracted directory: {directory}. Run data/scripts/download_filosofi.py first.")
+        raise FileNotFoundError(f"Missing bronze extracted directory: {directory}. Run python -m data.scripts.filosofi.download first.")
 
     data_file = select_filosofi2_data_file(directory)
     payload = data_file.read_bytes()

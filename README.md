@@ -22,8 +22,13 @@ There is no additional application backend. The frontend reads local JSON files 
 
 ### Data pipelines
 
-- `scripts/`: orchestration wrappers and R2 upload utility
-- `data/scripts/`: dataset-specific pipeline steps
+- `scripts/orchestration/`: pipeline entrypoints
+- `scripts/storage/`: storage utilities such as the R2 uploader
+- `scripts/shared/`: shared helpers for Python scripts
+- `data/scripts/dvf/`: DVF extraction and transformation steps
+- `data/scripts/filosofi/`: FiLoSoFi extraction and transformation steps
+- `data/scripts/publishing/`: preview and cross-dataset publishing steps
+- `data/scripts/legacy/`: compatibility helpers kept outside the main pipeline flow
 - `config/`: years, FiLoSoFi source definitions and canonical mappings
 
 ### Data layers

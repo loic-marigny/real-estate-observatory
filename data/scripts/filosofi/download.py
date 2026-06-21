@@ -22,8 +22,8 @@ DATASET_API_URL = (
     "revenus-et-pauvrete-des-menages-aux-niveaux-national-et-local-"
     "revenus-localises-sociaux-et-fiscaux/"
 )
-CONFIG_PATH = Path(__file__).resolve().parents[2] / "config" / "filosofi_sources.json"
-ROOT_DIR = Path(__file__).resolve().parents[2]
+CONFIG_PATH = Path(__file__).resolve().parents[3] / "config" / "filosofi_sources.json"
+ROOT_DIR = Path(__file__).resolve().parents[3]
 RAW_DATA_DIR = ROOT_DIR / "data" / "raw" / "filosofi"
 BRONZE_DATA_DIR = ROOT_DIR / "data" / "bronze" / "filosofi"
 KNOWN_FORMATS = ("csv", "xlsx", "xls")

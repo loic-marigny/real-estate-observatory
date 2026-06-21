@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 
 
-ROOT_DIR = Path(__file__).resolve().parents[2]
+ROOT_DIR = Path(__file__).resolve().parents[3]
 FILOSOFI_CONFIG_PATH = ROOT_DIR / "config" / "filosofi_sources.json"
 PIPELINE_YEARS_PATH = ROOT_DIR / "config" / "pipeline_years.json"
 CANONICAL_MAPPING_PATH = ROOT_DIR / "config" / "filosofi_canonical_columns.json"

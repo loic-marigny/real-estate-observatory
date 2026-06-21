@@ -46,7 +46,7 @@ jobs:
 
       - name: Build commune-year gold artifact
         run: |
-          python data/scripts/build_commune_year.py
+          python -m data.scripts.publishing.build_commune_year
 
       - name: Upload commune-year artifacts to R2
         env:
@@ -55,4 +55,4 @@ jobs:
           R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
         run: |
-          python scripts/r2_upload.py --local data/gold/commune_year --remote-prefix gold/commune_year
+          python -m scripts.storage.r2_upload --local data/gold/commune_year --remote-prefix gold/commune_year

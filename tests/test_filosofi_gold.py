@@ -4,7 +4,7 @@ import unittest
 
 import pandas as pd
 
-from data.scripts.build_filosofi_gold import (
+from data.scripts.filosofi.build_gold import (
     build_commune_frame,
     build_department_frame,
     build_indicator_availability_payload,

@@ -9,7 +9,7 @@ import pandas as pd
 from pandas.api.types import is_numeric_dtype
 
 
-ROOT_DIR = Path(__file__).resolve().parents[2]
+ROOT_DIR = Path(__file__).resolve().parents[3]
 PUBLIC_DATA_DIR = ROOT_DIR / "public" / "data"
 PREVIEW_ROWS = 500
 

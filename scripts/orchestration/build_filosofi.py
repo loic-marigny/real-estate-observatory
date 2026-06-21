@@ -6,10 +6,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-from pipeline_config import load_pipeline_config
+ROOT_DIR = Path(__file__).resolve().parents[2]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
-
-ROOT_DIR = Path(__file__).resolve().parents[1]
+from scripts.shared.pipeline_config import load_pipeline_config
 
 
 def log(message: str) -> None:
@@ -73,19 +74,20 @@ def main() -> None:
         pipeline_mode = str(source.get("pipeline_mode", "full_pipeline"))
         publish_public = year == latest_publishable_year and not args.skip_public
         year_args = ["--year", str(year), *(["--force"] if args.force else [])]
-        run_step("data/scripts/download_filosofi.py", *year_args)
+        run_step("-m", "data.scripts.filosofi.download", *year_args)
         if pipeline_mode == "bronze_only":
             log(f"Year {year} is configured as bronze-only. Skipping silver/gold/public steps.")
             continue
-        run_step("data/scripts/build_filosofi_bronze.py", *year_args)
-        run_step("data/scripts/build_filosofi_silver.py", *year_args)
+        run_step("-m", "data.scripts.filosofi.build_bronze", *year_args)
+        run_step("-m", "data.scripts.filosofi.build_silver", *year_args)
         run_step(
-            "data/scripts/build_filosofi_gold.py",
+            "-m",
+            "data.scripts.filosofi.build_gold",
             *year_args,
             *(["--publish-public"] if publish_public else []),
         )
         if publish_public:
-            run_step("data/scripts/build_public_previews.py", "--dataset", "filosofi", "--year", str(year))
+            run_step("-m", "data.scripts.publishing.build_public_previews", "--dataset", "filosofi", "--year", str(year))
 
 
 if __name__ == "__main__":

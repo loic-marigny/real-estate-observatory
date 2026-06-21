@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.pipeline_config import load_pipeline_config
+from scripts.shared.pipeline_config import load_pipeline_config
 
 
 class PipelineConfigTests(unittest.TestCase):

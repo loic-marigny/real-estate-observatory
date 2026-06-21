@@ -53,9 +53,9 @@ jobs:
               echo "year is required when mode is single_year" >&2
               exit 1
             fi
-            python scripts/build_filosofi.py --year "$PIPELINE_YEAR"
+            python -m scripts.orchestration.build_filosofi --year "$PIPELINE_YEAR"
           else
-            python scripts/build_filosofi.py --all-configured
+            python -m scripts.orchestration.build_filosofi --all-configured
           fi
 
       - name: Upload FiLoSoFi silver artifacts to R2
@@ -65,7 +65,7 @@ jobs:
           R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
         run: |
-          python scripts/r2_upload.py --local data/silver/filosofi --remote-prefix silver/filosofi
+          python -m scripts.storage.r2_upload --local data/silver/filosofi --remote-prefix silver/filosofi
 
       - name: Upload FiLoSoFi gold artifacts to R2
         env:
@@ -74,7 +74,7 @@ jobs:
           R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
         run: |
-          python scripts/r2_upload.py --local data/gold/filosofi --remote-prefix gold/filosofi
+          python -m scripts.storage.r2_upload --local data/gold/filosofi --remote-prefix gold/filosofi
 
       - name: Upload FiLoSoFi schema report to R2
         env:
@@ -83,7 +83,7 @@ jobs:
           R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
         run: |
-          python scripts/r2_upload.py --local reports/filosofi_schema_comparison.csv --remote-prefix reports
+          python -m scripts.storage.r2_upload --local reports/filosofi_schema_comparison.csv --remote-prefix reports
 
       - name: Upload FiLoSoFi summary JSON to R2
         env:
@@ -92,7 +92,7 @@ jobs:
           R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
         run: |
-          python scripts/r2_upload.py --local public/data/filosofi_summary.json --remote-prefix public/data
+          python -m scripts.storage.r2_upload --local public/data/filosofi_summary.json --remote-prefix public/data
 
       - name: Upload FiLoSoFi preview JSON to R2
         env:
@@ -101,7 +101,7 @@ jobs:
           R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
         run: |
-          python scripts/r2_upload.py --local public/data/filosofi_preview.json --remote-prefix public/data
+          python -m scripts.storage.r2_upload --local public/data/filosofi_preview.json --remote-prefix public/data
 
       - name: Upload FiLoSoFi gold artifact bundle
         uses: actions/upload-artifact@v4

@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 
 
-ROOT_DIR = Path(__file__).resolve().parents[2]
+ROOT_DIR = Path(__file__).resolve().parents[3]
 
 PROPERTY_TYPES = ["Appartement", "Maison"]
 FILTERS = {
@@ -65,7 +65,7 @@ def main() -> None:
 
     log(f"Preparing gold DVF outputs for year {args.year}")
     if not input_path.exists():
-        raise FileNotFoundError(f"Missing silver dataset: {input_path}. Run data/scripts/build_silver.py first.")
+        raise FileNotFoundError(f"Missing silver dataset: {input_path}. Run python -m data.scripts.dvf.build_silver first.")
 
     output_dir.mkdir(parents=True, exist_ok=True)
 

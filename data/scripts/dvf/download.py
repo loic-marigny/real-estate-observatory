@@ -14,7 +14,7 @@ CHUNK_SIZE = 1024 * 1024
 REQUEST_TIMEOUT = 120
 MAX_DOWNLOAD_ATTEMPTS = 3
 
-ROOT_DIR = Path(__file__).resolve().parents[2]
+ROOT_DIR = Path(__file__).resolve().parents[3]
 RAW_DATA_DIR = ROOT_DIR / "data" / "raw" / "dvf"
 YEAR_LINK_PATTERN = re.compile(r'href="[^"]*/(?P<year>\d{4})/"')
 

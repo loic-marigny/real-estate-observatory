@@ -4,7 +4,7 @@ import unittest
 
 import pandas as pd
 
-from data.scripts.build_filosofi_silver import (
+from data.scripts.filosofi.build_silver import (
     build_filosofi2_silver,
     build_historical_silver,
     infer_geography_level_from_frame,

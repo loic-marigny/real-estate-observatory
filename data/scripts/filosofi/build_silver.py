@@ -9,7 +9,7 @@ from pathlib import Path
 import pandas as pd
 
 
-ROOT_DIR = Path(__file__).resolve().parents[2]
+ROOT_DIR = Path(__file__).resolve().parents[3]
 CONFIG_PATH = ROOT_DIR / "config" / "filosofi_sources.json"
 STANDARD_COLUMNS = [
     "commune_code",

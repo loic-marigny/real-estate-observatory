@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 
-ROOT_DIR = Path(__file__).resolve().parents[1]
+ROOT_DIR = Path(__file__).resolve().parents[2]
 CONFIG_PATH = ROOT_DIR / "config" / "pipeline_years.json"
 
 
@@ -82,18 +82,19 @@ def main() -> None:
     for year in years:
         publish_public = year == configured_latest_year and not args.skip_public
         year_args = ["--year", str(year)]
-        if not try_run_step("data/scripts/download_dvf.py", *year_args):
+        if not try_run_step("-m", "data.scripts.dvf.download", *year_args):
             log(f"Skipping DVF year {year}: not currently available upstream")
             continue
-        run_step("data/scripts/build_bronze.py", *year_args)
-        run_step("data/scripts/build_silver.py", *year_args)
+        run_step("-m", "data.scripts.dvf.build_bronze", *year_args)
+        run_step("-m", "data.scripts.dvf.build_silver", *year_args)
         run_step(
-            "data/scripts/build_gold.py",
+            "-m",
+            "data.scripts.dvf.build_gold",
             *year_args,
             *(["--publish-public"] if publish_public else []),
         )
         if publish_public:
-            run_step("data/scripts/build_public_previews.py", "--dataset", "dvf", "--year", str(year))
+            run_step("-m", "data.scripts.publishing.build_public_previews", "--dataset", "dvf", "--year", str(year))
         processed_years.append(year)
 
     if not processed_years:
@@ -102,9 +103,10 @@ def main() -> None:
     if not args.skip_public:
         latest_processed_year = max(processed_years)
         if latest_processed_year != configured_latest_year:
-            run_step("data/scripts/build_gold.py", "--year", str(latest_processed_year), "--publish-public")
+            run_step("-m", "data.scripts.dvf.build_gold", "--year", str(latest_processed_year), "--publish-public")
             run_step(
-                "data/scripts/build_public_previews.py",
+                "-m",
+                "data.scripts.publishing.build_public_previews",
                 "--dataset",
                 "dvf",
                 "--year",

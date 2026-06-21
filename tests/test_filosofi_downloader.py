@@ -12,7 +12,7 @@ import unittest
 
 from openpyxl import Workbook
 
-from data.scripts import download_filosofi
+from data.scripts.filosofi import download
 
 
 def create_fake_workbook_bytes(sheet_names: list[str] | None = None) -> bytes:
@@ -102,7 +102,7 @@ class FiLoSoFiDownloaderTests(unittest.TestCase):
             },
         ]
 
-        selected = download_filosofi.select_resource(resources, 2017)
+        selected = download.select_resource(resources, 2017)
 
         self.assertEqual(selected["url"], "https://example.test/filosofi_2017.xlsx")
 
@@ -119,8 +119,8 @@ class FiLoSoFiDownloaderTests(unittest.TestCase):
             archive_path = Path(temp_dir) / "2018.zip"
             archive_path.write_bytes(create_zip_bytes(file_names))
 
-            members = download_filosofi.validate_zip_archive(archive_path)
-            validated = download_filosofi.validate_xlsx_zip_members(archive_path, members, 2018, ["DEC_COM", "DISP_COM"])
+            members = download.validate_zip_archive(archive_path)
+            validated = download.validate_xlsx_zip_members(archive_path, members, 2018, ["DEC_COM", "DISP_COM"])
 
         self.assertEqual(validated, file_names)
 
@@ -129,9 +129,9 @@ class FiLoSoFiDownloaderTests(unittest.TestCase):
             archive_path = Path(temp_dir) / "wrong.zip"
             archive_path.write_bytes(create_zip_bytes(["FILO2018_DEC_COM.xlsx", "FILO2020_DISP_COM.xlsx"]))
 
-            members = download_filosofi.validate_zip_archive(archive_path)
+            members = download.validate_zip_archive(archive_path)
             with self.assertRaisesRegex(RuntimeError, "do not match FiLoSoFi year 2018"):
-                download_filosofi.validate_xlsx_zip_members(archive_path, members, 2018, ["DEC_COM", "DISP_COM"])
+                download.validate_xlsx_zip_members(archive_path, members, 2018, ["DEC_COM", "DISP_COM"])
 
     def test_validate_zip_archive_rejects_html_payload(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -139,14 +139,14 @@ class FiLoSoFiDownloaderTests(unittest.TestCase):
             archive_path.write_text("<html><body>error</body></html>", encoding="utf-8")
 
             with self.assertRaisesRegex(RuntimeError, "HTML"):
-                download_filosofi.validate_zip_archive(archive_path)
+                download.validate_zip_archive(archive_path)
 
     def test_sha256_file_returns_stable_hash(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             file_path = Path(temp_dir) / "sample.txt"
             file_path.write_text("abc", encoding="utf-8")
 
-            digest = download_filosofi.sha256_file(file_path)
+            digest = download.sha256_file(file_path)
 
         self.assertEqual(digest, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
 
@@ -171,8 +171,8 @@ class FiLoSoFiDownloaderTests(unittest.TestCase):
 
         fake_page = FakeResponse(html.encode("utf-8"), "text/html", source["source_page_url"])
         fake_page.text = html
-        with mock.patch.object(download_filosofi.requests, "get", return_value=fake_page):
-            discovered = download_filosofi.discover_filosofi2_link(source)
+        with mock.patch.object(download.requests, "get", return_value=fake_page):
+            discovered = download.discover_filosofi2_link(source)
 
         self.assertEqual(discovered, "https://www.insee.fr/fr/statistiques/fichier/8984752/FILOSOFI_CC_csv.zip")
 
@@ -188,8 +188,8 @@ class FiLoSoFiDownloaderTests(unittest.TestCase):
         fake_page = FakeResponse(html.encode("utf-8"), "text/html", "https://example.test/resource-page")
         fake_page.text = html
 
-        with mock.patch.object(download_filosofi.requests, "get", return_value=fake_page):
-            discovered = download_filosofi.discover_file_url("https://example.test/resource-page", "xlsx")
+        with mock.patch.object(download.requests, "get", return_value=fake_page):
+            discovered = download.discover_file_url("https://example.test/resource-page", "xlsx")
 
         self.assertEqual(discovered, "https://example.test/files/filosofi_2017.xlsx")
 
@@ -205,8 +205,8 @@ class FiLoSoFiDownloaderTests(unittest.TestCase):
         fake_page = FakeResponse(html.encode("utf-8"), "text/html", "https://www.insee.fr/fr/statistiques/4507225")
         fake_page.text = html
 
-        with mock.patch.object(download_filosofi.requests, "get", return_value=fake_page):
-            discovered = download_filosofi.discover_file_url("https://www.insee.fr/fr/statistiques/4507225", "csv")
+        with mock.patch.object(download.requests, "get", return_value=fake_page):
+            discovered = download.discover_file_url("https://www.insee.fr/fr/statistiques/4507225", "csv")
 
         self.assertEqual(discovered, "https://www.insee.fr/fr/statistiques/fichier/4507225/base-filosofi-2017_CSV.zip")
 
@@ -216,16 +216,16 @@ class FiLoSoFiDownloaderTests(unittest.TestCase):
             path.write_text("<html><body>error</body></html>", encoding="utf-8")
 
             with self.assertRaisesRegex(RuntimeError, "HTML"):
-                download_filosofi.inspect_csv_file(path)
+                download.inspect_csv_file(path)
 
     def test_inspect_csv_file_validates_filosofi2_schema(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             archive_path = Path(temp_dir) / "2023.zip"
             archive_path.write_bytes(create_filosofi2_zip_bytes())
             extracted_dir = Path(temp_dir) / "extracted"
-            extracted_paths = download_filosofi.extract_csv_archive(archive_path, extracted_dir)
+            extracted_paths = download.extract_csv_archive(archive_path, extracted_dir)
 
-            info = download_filosofi.inspect_csv_file(extracted_paths[0])
+            info = download.inspect_csv_file(extracted_paths[0])
 
         self.assertEqual(info["columns"], [
             "FILOSOFI_MEASURE",
@@ -247,9 +247,9 @@ class FiLoSoFiDownloaderTests(unittest.TestCase):
             archive_path = Path(temp_dir) / "2023.zip"
             archive_path.write_bytes(create_filosofi2_zip_bytes())
             extracted_dir = Path(temp_dir) / "extracted"
-            extracted_paths = download_filosofi.extract_csv_archive(archive_path, extracted_dir)
+            extracted_paths = download.extract_csv_archive(archive_path, extracted_dir)
 
-            extracted_files = download_filosofi.inspect_filosofi2_extracted_files(extracted_paths)
+            extracted_files = download.inspect_filosofi2_extracted_files(extracted_paths)
 
         self.assertEqual([item["filename"] for item in extracted_files], [
             "DS_FILOSOFI_CC_2023_data.csv",
@@ -279,9 +279,9 @@ class FiLoSoFiDownloaderTests(unittest.TestCase):
             archive_dir.mkdir(parents=True, exist_ok=True)
             archive_path = archive_dir / source["archive_filename"]
             archive_path.write_bytes(create_zip_bytes(file_names))
-            extracted = download_filosofi.extract_files(archive_path, extracted_dir, file_names)
-            workbooks = [download_filosofi.inspect_xlsx_workbook(path) for path in extracted]
-            manifest = download_filosofi.build_xlsx_zip_manifest(
+            extracted = download.extract_files(archive_path, extracted_dir, file_names)
+            workbooks = [download.inspect_xlsx_workbook(path) for path in extracted]
+            manifest = download.build_xlsx_zip_manifest(
                 year=2020,
                 source=source,
                 archive_path=archive_path,
@@ -292,11 +292,11 @@ class FiLoSoFiDownloaderTests(unittest.TestCase):
             manifest_path = root / "manifest.json"
             manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
 
-            with mock.patch.object(download_filosofi, "bronze_output_dir", return_value=root), \
-                mock.patch.object(download_filosofi, "bronze_source_dir", return_value=archive_dir), \
-                mock.patch.object(download_filosofi, "bronze_extracted_dir", return_value=extracted_dir), \
-                mock.patch.object(download_filosofi, "bronze_manifest_path", return_value=manifest_path):
-                self.assertTrue(download_filosofi.existing_bronze_ingestion_is_valid(2020, source))
+            with mock.patch.object(download, "bronze_output_dir", return_value=root), \
+                mock.patch.object(download, "bronze_source_dir", return_value=archive_dir), \
+                mock.patch.object(download, "bronze_extracted_dir", return_value=extracted_dir), \
+                mock.patch.object(download, "bronze_manifest_path", return_value=manifest_path):
+                self.assertTrue(download.existing_bronze_ingestion_is_valid(2020, source))
 
     def test_force_triggers_redownload(self) -> None:
         source = {
@@ -315,12 +315,12 @@ class FiLoSoFiDownloaderTests(unittest.TestCase):
         ])
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
-            with mock.patch.object(download_filosofi, "bronze_output_dir", return_value=root), \
-                mock.patch.object(download_filosofi, "bronze_source_dir", return_value=root / "source"), \
-                mock.patch.object(download_filosofi, "bronze_extracted_dir", return_value=root / "extracted"), \
-                mock.patch.object(download_filosofi, "bronze_manifest_path", return_value=root / "manifest.json"), \
-                mock.patch.object(download_filosofi.requests, "get", return_value=FakeResponse(payload, "application/zip", source["download_url"])) as mocked_get:
-                download_filosofi.ingest_insee_xlsx_zip_bronze(2020, source, force=True)
+            with mock.patch.object(download, "bronze_output_dir", return_value=root), \
+                mock.patch.object(download, "bronze_source_dir", return_value=root / "source"), \
+                mock.patch.object(download, "bronze_extracted_dir", return_value=root / "extracted"), \
+                mock.patch.object(download, "bronze_manifest_path", return_value=root / "manifest.json"), \
+                mock.patch.object(download.requests, "get", return_value=FakeResponse(payload, "application/zip", source["download_url"])) as mocked_get:
+                download.ingest_insee_xlsx_zip_bronze(2020, source, force=True)
 
         self.assertEqual(mocked_get.call_count, 1)
 

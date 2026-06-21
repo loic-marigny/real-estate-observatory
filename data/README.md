@@ -4,6 +4,13 @@ This directory contains the Python pipelines used to prepare DVF and FiLoSoFi da
 
 The current architecture is multi-year and dataset-oriented. Flat mono-millesime local artifacts are no longer the active model.
 
+Pipeline scripts are now grouped by role:
+
+- `data/scripts/dvf/`
+- `data/scripts/filosofi/`
+- `data/scripts/publishing/`
+- `data/scripts/legacy/`
+
 ## Current layout
 
 ```text
@@ -57,44 +64,44 @@ Defines the explicit mapping between canonical FiLoSoFi variables and the publis
 Build one DVF year:
 
 ```bash
-python scripts/build_dvf.py --year 2024
+python -m scripts.orchestration.build_dvf --year 2024
 ```
 
 Build all configured DVF years:
 
 ```bash
-python scripts/build_dvf.py --all-configured
+python -m scripts.orchestration.build_dvf --all-configured
 ```
 
 Build one FiLoSoFi year:
 
 ```bash
-python scripts/build_filosofi.py --year 2021
+python -m scripts.orchestration.build_filosofi --year 2021
 ```
 
 Build all configured FiLoSoFi years:
 
 ```bash
-python scripts/build_filosofi.py --all-configured
+python -m scripts.orchestration.build_filosofi --all-configured
 ```
 
 Force a fresh FiLoSoFi download and rebuild:
 
 ```bash
-python scripts/build_filosofi.py --year 2021 --force
-python scripts/build_filosofi.py --all-configured --force
+python -m scripts.orchestration.build_filosofi --year 2021 --force
+python -m scripts.orchestration.build_filosofi --all-configured --force
 ```
 
 Run the global orchestrator:
 
 ```bash
-python scripts/run_pipeline.py
+python -m scripts.orchestration.run_pipeline
 ```
 
 Upload any local file or directory to R2:
 
 ```bash
-python scripts/r2_upload.py --local data/gold/filosofi --remote-prefix gold/filosofi
+python -m scripts.storage.r2_upload --local data/gold/filosofi --remote-prefix gold/filosofi
 ```
 
 ## DVF outputs

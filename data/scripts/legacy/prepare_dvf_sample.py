@@ -11,9 +11,9 @@ def log(message: str) -> None:
 
 def main() -> None:
     log("prepare_dvf_sample.py is now a compatibility wrapper")
-    log("Running scripts/build_dvf.py for year 2024")
-    root_dir = Path(__file__).resolve().parents[2]
-    subprocess.run([sys.executable, "scripts/build_dvf.py", "--year", "2024"], cwd=root_dir, check=True)
+    log("Running scripts.orchestration.build_dvf for year 2024")
+    root_dir = Path(__file__).resolve().parents[3]
+    subprocess.run([sys.executable, "-m", "scripts.orchestration.build_dvf", "--year", "2024"], cwd=root_dir, check=True)
 
 
 if __name__ == "__main__":
