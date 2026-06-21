@@ -1,4 +1,4 @@
-import type { DvfSummary, ObservatoryContent } from '../types/realEstate'
+import type { ObservatoryContent } from '../types/realEstate'
 
 export const mockObservatoryContent: ObservatoryContent = {
   home: {
@@ -161,61 +161,4 @@ export const mockObservatoryContent: ObservatoryContent = {
       },
     ],
   },
-}
-
-export const mockDvfSummary: DvfSummary = {
-  generatedAt: '2026-05-30T00:00:00Z',
-  sourceFile: 'data/raw/dvf_sample.csv',
-  filters: {
-    mutationTypes: ['Vente'],
-    residentialTypes: ['Maison', 'Appartement'],
-  },
-  totalSalesCount: 842,
-  medianPricePerSquareMeter: 3420,
-  medianSurface: 71,
-  salesCountByDepartment: {
-    '13': 210,
-    '33': 126,
-    '59': 184,
-    '69': 176,
-    '75': 146,
-  },
-  medianPricePerSquareMeterByDepartment: {
-    '13': 3530,
-    '33': 3210,
-    '59': 2480,
-    '69': 4280,
-    '75': 10850,
-  },
-  medianPricePerSquareMeterByPropertyType: {
-    Appartement: 4180,
-    Maison: 2870,
-  },
-  departments: [
-    {
-      departmentCode: '13',
-      salesCount: 210,
-      medianPricePerSquareMeter: 3530,
-    },
-    {
-      departmentCode: '33',
-      salesCount: 126,
-      medianPricePerSquareMeter: 3210,
-    },
-    {
-      departmentCode: '59',
-      salesCount: 184,
-      medianPricePerSquareMeter: 2480,
-    },
-    {
-      departmentCode: '69',
-      salesCount: 176,
-      medianPricePerSquareMeter: 4280,
-    },
-    {
-      departmentCode: '75',
-      salesCount: 146,
-      medianPricePerSquareMeter: 10850,
-    },
-  ],
 }
