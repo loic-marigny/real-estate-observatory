@@ -27,7 +27,7 @@ import type {
   FilosofiQueryResult,
 } from '../types/realEstate'
 
-const DEFAULT_PAGE_SIZE = 50
+const DEFAULT_PAGE_SIZE = 20
 
 export function DataExplorer() {
   const [datasets, setDatasets] = useState<DatasetDescriptor[]>([])
@@ -126,6 +126,7 @@ export function DataExplorer() {
     let isMounted = true
     const loadFilosofiCatalog = async () => {
       try {
+        setFilosofiError(null)
         const [metadata, availability, years] = await Promise.all([
           getMetadata(),
           getIndicatorAvailability(),
@@ -145,6 +146,8 @@ export function DataExplorer() {
         })
       } catch {
         if (isMounted) {
+          setFilosofiYears([])
+          setSelectedYear(null)
           setFilosofiError(
             'Impossible de charger les métadonnées FiLoSoFi. Vérifiez l’accès aux fichiers JSON sur R2.',
           )
@@ -176,6 +179,7 @@ export function DataExplorer() {
           return
         }
         startTransition(() => {
+          setFilosofiError(null)
           setIndicatorOptions(options)
           setSelectedIndicator((current) =>
             current && options.some((option) => option.indicator === current)
@@ -187,6 +191,9 @@ export function DataExplorer() {
         if (isMounted) {
           setIndicatorOptions([])
           setSelectedIndicator(null)
+          setFilosofiError(
+            'Impossible de déterminer les indicateurs FiLoSoFi disponibles pour cette sélection.',
+          )
         }
       }
     }
@@ -200,6 +207,9 @@ export function DataExplorer() {
 
   useEffect(() => {
     if (selectedDatasetId !== 'filosofi' || !selectedYear || !selectedIndicator) {
+      setFilosofiResult(null)
+      setFilosofiWarnings([])
+      setIsFilosofiLoading(false)
       return
     }
 
@@ -266,10 +276,7 @@ export function DataExplorer() {
     [datasets, selectedDatasetId, selectedPreview],
   )
 
-  const hasFilosofiInterface =
-    selectedDatasetId === 'filosofi' &&
-    selectedYear !== null &&
-    selectedIndicator !== null
+  const hasFilosofiInterface = selectedDatasetId === 'filosofi'
 
   const resultColumns = useMemo<FilosofiResultColumn[]>(() => {
     if (!selectedIndicator) {

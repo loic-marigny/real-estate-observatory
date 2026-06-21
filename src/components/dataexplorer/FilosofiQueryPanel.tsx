@@ -81,6 +81,9 @@ export function FilosofiQueryPanel({
   const totalRows = result?.totalRows ?? 0
   const totalPages = Math.max(1, Math.ceil(totalRows / pageSize))
   const currentPage = Math.min(page, totalPages)
+  const hasYears = years.length > 0
+  const hasIndicators = indicators.length > 0
+  const canQuery = selectedYear !== null && selectedIndicator !== null
 
   return (
     <section className="panel filosofi-query-panel" aria-labelledby="filosofi-query-title">
@@ -100,8 +103,10 @@ export function FilosofiQueryPanel({
           <select
             className="page-size-selector__select"
             value={selectedYear ?? ''}
+            disabled={!hasYears}
             onChange={(event) => onYearChange(Number(event.target.value))}
           >
+            {!hasYears ? <option value="">Aucune année disponible</option> : null}
             {years.map((year) => (
               <option key={year} value={year}>
                 {year}
@@ -147,10 +152,14 @@ export function FilosofiQueryPanel({
           <select
             className="page-size-selector__select"
             value={selectedIndicator ?? ''}
+            disabled={!hasIndicators}
             onChange={(event) =>
               onIndicatorChange(event.target.value as FilosofiIndicator)
             }
           >
+            {!hasIndicators ? (
+              <option value="">Aucun indicateur disponible</option>
+            ) : null}
             {indicators.map((indicator) => (
               <option key={indicator.indicator} value={indicator.indicator}>
                 {indicator.label}
@@ -164,6 +173,7 @@ export function FilosofiQueryPanel({
           <select
             className="page-size-selector__select"
             value={`${sortBy}:${sortDirection}`}
+            disabled={!canQuery}
             onChange={(event) => {
               const [nextSortBy, nextDirection] = event.target.value.split(':')
               onSortChange(nextSortBy, nextDirection as 'asc' | 'desc')
@@ -198,9 +208,11 @@ export function FilosofiQueryPanel({
         </label>
       </div>
 
-      <div className="data-table-toolbar">
-        <SearchBar query={search} onQueryChange={onSearchChange} />
-      </div>
+      {canQuery ? (
+        <div className="data-table-toolbar">
+          <SearchBar query={search} onQueryChange={onSearchChange} />
+        </div>
+      ) : null}
 
       {warnings.length ? (
         <div className="filosofi-query-warnings">
@@ -216,7 +228,19 @@ export function FilosofiQueryPanel({
 
       {isLoading ? <p>Chargement des données FiLoSoFi…</p> : null}
 
-      {result ? (
+      {!error && !isLoading && !hasYears ? (
+        <p className="filosofi-query-error">
+          Aucune année FiLoSoFi n’a été trouvée dans les métadonnées chargées.
+        </p>
+      ) : null}
+
+      {!error && !isLoading && hasYears && !hasIndicators ? (
+        <p className="filosofi-query-error">
+          Aucun indicateur n’est disponible pour cette combinaison année / maille.
+        </p>
+      ) : null}
+
+      {result && canQuery ? (
         <>
           <div className="data-table-wrapper">
             <table className="data-table">
