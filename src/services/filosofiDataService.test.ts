@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildFilosofiQuery,
+  buildFilosofiTrendQuery,
   getAvailabilityLevelKey,
   getAvailableIndicatorsFromAvailability,
   normalizeFilosofiIndicatorAvailability,
@@ -157,6 +158,22 @@ describe('filosofiDataService', () => {
     expect(built.sql).toContain('OFFSET 40')
     expect(built.sql).toContain('ORDER BY geography_name ASC NULLS LAST')
     expect(built.sql).not.toContain('SELECT *')
+  })
+
+  it('builds a trend query for FiLoSoFi indicators across years', () => {
+    const built = buildFilosofiTrendQuery(
+      {
+        indicators: ['median_income', 'd1_income', 'd9_income'],
+        years: [2017, 2018, 2023],
+      },
+      'https://assets.example/gold/filosofi/department_official/department_all_years.parquet',
+    )
+
+    expect(built).toContain('avg(median_income) AS median_income')
+    expect(built).toContain('avg(d1_income) AS d1_income')
+    expect(built).toContain('avg(d9_income) AS d9_income')
+    expect(built).toContain('WHERE year IN (2017, 2018, 2023)')
+    expect(built).toContain('GROUP BY year')
   })
 
   it('rejects unsupported sort columns', () => {

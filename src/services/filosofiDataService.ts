@@ -12,6 +12,9 @@ import type {
   FilosofiQueryParams,
   FilosofiQueryResult,
   FilosofiQueryRow,
+  FilosofiTrendIndicator,
+  FilosofiTrendResult,
+  FilosofiTrendSeries,
 } from '../types/realEstate'
 
 export type FilosofiResultColumn = {
@@ -401,6 +404,95 @@ export const buildFilosofiQuery = (
     limit,
     offset,
     parquetUrl,
+  }
+}
+
+export const FILOSOFI_TREND_INDICATORS: FilosofiTrendIndicator[] = [
+  'median_income',
+  'd1_income',
+  'd9_income',
+]
+
+export const buildFilosofiTrendQuery = (
+  params: {
+    departmentSource?: FilosofiDepartmentSource
+    indicators: FilosofiTrendIndicator[]
+    years: number[]
+  },
+  parquetUrl: string,
+): string => {
+  const selectedIndicators = params.indicators.length
+    ? params.indicators
+    : FILOSOFI_TREND_INDICATORS
+
+  const aggregates = selectedIndicators
+    .map((indicator) => `avg(${indicator}) AS ${indicator}`)
+    .join(',\n        ')
+
+  const yearList = params.years
+    .map((year) => `${Math.trunc(year)}`)
+    .filter((year, index, array) => array.indexOf(year) === index)
+    .join(', ')
+
+  const escapedParquetUrl = escapeSqlStringLiteral(parquetUrl)
+
+  return `
+    SELECT
+      year,
+      ${aggregates}
+    FROM read_parquet(${escapedParquetUrl})
+    WHERE year IN (${yearList})
+      AND year IS NOT NULL
+    GROUP BY year
+    ORDER BY year
+  `
+}
+
+export const queryFilosofiTrend = async (
+  params: {
+    geographyLevel: FilosofiGeographyLevel
+    departmentSource?: FilosofiDepartmentSource
+    indicators: FilosofiTrendIndicator[]
+  },
+): Promise<FilosofiTrendResult> => {
+  const years = await getAvailableYears()
+  const parquetUrl = resolveFilosofiQueryAsset(
+    params.geographyLevel,
+    params.departmentSource,
+  )
+
+  const rows = await duckdbClient.query(
+    buildFilosofiTrendQuery(
+      {
+        departmentSource: params.departmentSource,
+        indicators: params.indicators,
+        years,
+      },
+      parquetUrl,
+    ),
+  )
+
+  const rowsByYear = Object.fromEntries(
+    rows.map((row) => [
+      Number(row.year),
+      row,
+    ]),
+  ) as Record<string, Record<string, unknown>>
+
+  const series: FilosofiTrendSeries[] = params.indicators.map((indicator) => ({
+    indicator,
+    label: FILOSOFI_INDICATOR_LABELS[indicator],
+    points: years.map((year) => ({
+      year,
+      value: normalizeOptionalNumber(rowsByYear[String(year)]?.[indicator]),
+    })),
+  }))
+
+  return {
+    availableYears: years,
+    series,
+    geographyLevel: params.geographyLevel,
+    departmentSource: params.departmentSource ?? 'official',
   }
 }
 

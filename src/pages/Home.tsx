@@ -1,6 +1,7 @@
 import { startTransition, useEffect, useState } from 'react'
 import { DepartmentChoropleth } from '../components/DepartmentChoropleth'
 import { MetricCard } from '../components/MetricCard'
+import EvolutionChartsSection from '../components/EvolutionChartsSection'
 import { getDvfSummary } from '../services/dvfService'
 import { getFilosofiSummary } from '../services/filosofiService'
 import type {
@@ -244,9 +245,7 @@ export function Home({
             <p className="eyebrow">{chartSection.eyebrow}</p>
             <h2>{chartSection.title}</h2>
           </div>
-          <div className="placeholder-block placeholder-block--chart">
-            {chartSection.description}
-          </div>
+          <EvolutionChartsSection description={chartSection.description} />
         </article>
       </section>
 

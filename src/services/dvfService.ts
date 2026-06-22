@@ -1,4 +1,6 @@
-import type { DvfDepartmentSummary, DvfSummary } from '../types/realEstate'
+import type { DvfDepartmentSummary, DvfSummary, DvfTrendResult } from '../types/realEstate'
+import { duckdbClient } from './duckdbClient'
+import { dvfAssetUrls } from './dataAssetConfig'
 
 const DVF_SUMMARY_URL = '/data/dvf_summary.json'
 
@@ -136,4 +138,68 @@ export async function getDvfSummary(): Promise<DvfSummary> {
 
   const data = (await response.json()) as unknown
   return normalizeDvfSummary(data)
+}
+
+const escapeSqlStringLiteral = (value: string): string =>
+  `'${value.replaceAll("'", "''")}'`
+
+// List of years to try loading
+// These years have data available on R2
+const DVF_YEARS = [2021, 2022, 2023, 2024]
+
+const getDvfNationalParquetUrl = (year: number): string =>
+  dvfAssetUrls.yearParquet(year)
+
+async function loadDvfYearData(year: number): Promise<Array<Record<string, unknown>> | null> {
+  const parquetUrl = getDvfNationalParquetUrl(year)
+  const escapedUrl = escapeSqlStringLiteral(parquetUrl)
+
+  const sql = `
+    SELECT
+      CAST(year AS INTEGER) AS year,
+      median_price_m2
+    FROM read_parquet(${escapedUrl})
+    WHERE year = ${year}
+      AND median_price_m2 IS NOT NULL
+      AND median_price_m2 > 0
+  `
+
+  try {
+    const rows = await duckdbClient.query(sql)
+    return rows
+  } catch (error) {
+    // File might not exist for this year, silently skip
+    console.debug(`DVF data not available for year ${year}`)
+    return null
+  }
+}
+
+export async function queryDvfTrend(): Promise<DvfTrendResult> {
+  // Load all years in parallel
+  const yearResults = await Promise.all(DVF_YEARS.map((year) => loadDvfYearData(year)))
+
+  const allRows: Array<Record<string, unknown>> = []
+  for (const rows of yearResults) {
+    if (rows && rows.length > 0) {
+      allRows.push(...rows)
+    }
+  }
+
+  if (allRows.length === 0) {
+    throw new Error('Impossible de charger les tendances DVF')
+  }
+
+  const points = allRows
+    .map((row) => ({
+      year: typeof row.year === 'number' ? row.year : Number(row.year),
+      medianPricePerSquareMeter:
+        typeof row.median_price_m2 === 'number' ? row.median_price_m2 : null,
+    }))
+    .filter((point) => Number.isFinite(point.year))
+    .sort((a, b) => a.year - b.year)
+
+  return {
+    availableYears: points.map((p) => p.year).sort((a, b) => a - b),
+    points,
+  }
 }

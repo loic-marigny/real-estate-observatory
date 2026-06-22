@@ -40,3 +40,8 @@ export const getFilosofiParquetUrl = (
     ? filosofiAssetUrls.departmentDerivedParquet()
     : filosofiAssetUrls.departmentOfficialParquet()
 }
+
+export const dvfAssetUrls = {
+  allYearsParquetGlob: () => getDataAssetUrl('gold/dvf/year=*/dvf_national.parquet'),
+  yearParquet: (year: number) => getDataAssetUrl(`gold/dvf/year=${year}/dvf_national.parquet`),
+}

@@ -139,6 +139,24 @@ export type FilosofiSummary = {
   notes: string[]
 }
 
+export type FilosofiTrendPoint = {
+  year: number
+  value: number | null
+}
+
+export type FilosofiTrendSeries = {
+  indicator: FilosofiTrendIndicator
+  label: string
+  points: FilosofiTrendPoint[]
+}
+
+export type FilosofiTrendResult = {
+  availableYears: number[]
+  series: FilosofiTrendSeries[]
+  geographyLevel: FilosofiGeographyLevel
+  departmentSource: FilosofiDepartmentSource
+}
+
 export type FilosofiIndicator =
   | 'median_income'
   | 'd1_income'
@@ -153,6 +171,21 @@ export type FilosofiIndicator =
   | 'poverty_rate'
   | 'tax_households'
   | 'population'
+
+export type FilosofiTrendIndicator =
+  | 'median_income'
+  | 'd1_income'
+  | 'd9_income'
+
+export type DvfTrendPoint = {
+  year: number
+  medianPricePerSquareMeter: number | null
+}
+
+export type DvfTrendResult = {
+  availableYears: number[]
+  points: DvfTrendPoint[]
+}
 
 export type FilosofiGeographyLevel = 'commune' | 'department'
 export type FilosofiDepartmentSource = 'official' | 'derived'

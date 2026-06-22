@@ -1,0 +1,11 @@
+import * as duckdb from '@duckdb/duckdb-wasm';
+const bundle = await duckdb.selectBundle();
+const worker = new Worker(bundle.mainWorker);
+const logger = new duckdb.VoidLogger();
+const db = new duckdb.AsyncDuckDB(logger, worker);
+await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+const conn = await db.connect();
+const result = await conn.query('SELECT * FROM read_parquet(\'data/gold/filosofi/commune_all_years.parquet\') LIMIT 1');
+console.log(JSON.stringify(result.toArray()[0]));
+await conn.close();
+await db.close();
