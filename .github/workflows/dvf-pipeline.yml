@@ -25,6 +25,9 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   dvf-pipeline:
     runs-on: ubuntu-latest
@@ -75,24 +78,6 @@ jobs:
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
         run: |
           python -m scripts.storage.r2_upload --local data/gold/dvf --remote-prefix gold/dvf
-
-      - name: Upload DVF summary JSON to R2
-        env:
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
-          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
-        run: |
-          python -m scripts.storage.r2_upload --local public/data/dvf_summary.json --remote-prefix public/data
-
-      - name: Upload DVF preview JSON to R2
-        env:
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
-          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
-        run: |
-          python -m scripts.storage.r2_upload --local public/data/dvf_preview.json --remote-prefix public/data
 
       - name: Upload DVF gold artifact bundle
         uses: actions/upload-artifact@v4
