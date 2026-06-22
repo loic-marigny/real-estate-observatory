@@ -14,6 +14,7 @@ def make_catalog_payload() -> dict[str, object]:
     return {
         "dataset": "filosofi",
         "default_year": 2023,
+        "known_missing_years": [2022],
         "sources": {
             "2017": {"enabled": True, "source_type": "data_gouv", "pipeline_mode": "full_pipeline"},
             "2018": {"enabled": True, "source_type": "insee_xlsx_zip", "pipeline_mode": "full_pipeline"},
@@ -46,6 +47,7 @@ class PipelineConfigTests(unittest.TestCase):
         self.assertEqual(catalog.available_years, [2017, 2018, 2019, 2020, 2021, 2023])
         self.assertEqual(catalog.enabled_years, [2017, 2018, 2019, 2020, 2021, 2023])
         self.assertEqual(catalog.default_year, 2023)
+        self.assertEqual(catalog.known_missing_years, [2022])
         self.assertEqual(catalog.get_source(2023)["source_type"], "insee_filosofi2_multigeography")
 
     def test_available_but_disabled_year_is_exposed_but_not_enabled(self) -> None:
@@ -139,11 +141,20 @@ class PipelineConfigTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Redundant key 'years'"):
             load_filosofi_catalog(path)
 
+    def test_known_missing_years_cannot_overlap_available_years(self) -> None:
+        payload = make_catalog_payload()
+        payload["known_missing_years"] = [2021]
+        path = self.write_json("filosofi_sources.json", payload)
+
+        with self.assertRaisesRegex(RuntimeError, "known_missing_years overlaps"):
+            load_filosofi_catalog(path)
+
     def test_all_configured_uses_only_enabled_years(self) -> None:
         catalog = FilosofiCatalog(
             available_years=[2017, 2018, 2019],
             enabled_years=[2017, 2019],
             default_year=2019,
+            known_missing_years=[],
             sources={
                 2017: {"enabled": True, "source_type": "data_gouv", "pipeline_mode": "bronze_only"},
                 2018: {"enabled": False, "source_type": "insee_xlsx_zip", "pipeline_mode": "full_pipeline"},
@@ -172,6 +183,7 @@ class PipelineConfigTests(unittest.TestCase):
             available_years=[2018],
             enabled_years=[],
             default_year=2018,
+            known_missing_years=[],
             sources={2018: {"enabled": False, "source_type": "insee_xlsx_zip", "pipeline_mode": "bronze_only"}},
             path=Path("config/filosofi_sources.json"),
         )
@@ -195,6 +207,7 @@ class PipelineConfigTests(unittest.TestCase):
         self.assertEqual(catalog.available_years, [2017, 2018, 2019, 2020, 2021, 2023])
         self.assertEqual(catalog.enabled_years, [2017, 2018, 2019, 2020, 2021, 2023])
         self.assertEqual(catalog.default_year, 2023)
+        self.assertEqual(catalog.known_missing_years, [2022])
 
 
 if __name__ == "__main__":

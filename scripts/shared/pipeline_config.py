@@ -40,6 +40,7 @@ class FilosofiCatalog:
     available_years: list[int]
     enabled_years: list[int]
     default_year: int
+    known_missing_years: list[int]
     sources: dict[int, dict[str, Any]]
     path: Path
 
@@ -71,6 +72,21 @@ def load_filosofi_catalog(config_path: Path | None = None) -> FilosofiCatalog:
         default_year = int(default_year_raw)
     except (TypeError, ValueError) as error:
         raise RuntimeError(f"Invalid key 'default_year' in {path}: expected an integer year") from error
+
+    known_missing_years_raw = payload.get("known_missing_years", [])
+    if not isinstance(known_missing_years_raw, list):
+        raise RuntimeError(f"Invalid key 'known_missing_years' in {path}: expected a list")
+    known_missing_years: list[int] = []
+    for raw_year in known_missing_years_raw:
+        try:
+            year = int(raw_year)
+        except (TypeError, ValueError) as error:
+            raise RuntimeError(
+                f"Invalid FiLoSoFi missing year {raw_year!r} in {path}: expected an integer-like value"
+            ) from error
+        if year in known_missing_years:
+            raise RuntimeError(f"Duplicate FiLoSoFi missing year {year} detected in {path}")
+        known_missing_years.append(year)
 
     sources_raw = payload.get("sources")
     if not isinstance(sources_raw, dict) or not sources_raw:
@@ -116,10 +132,17 @@ def load_filosofi_catalog(config_path: Path | None = None) -> FilosofiCatalog:
     if not normalized_sources[default_year]["enabled"]:
         raise RuntimeError(f"default_year {default_year} is disabled in FiLoSoFi catalog {path}")
 
+    overlapping_missing_years = sorted(set(known_missing_years) & set(available_years))
+    if overlapping_missing_years:
+        raise RuntimeError(
+            f"known_missing_years overlaps with available FiLoSoFi years in {path}: {overlapping_missing_years}"
+        )
+
     return FilosofiCatalog(
         available_years=available_years,
         enabled_years=enabled_years,
         default_year=default_year,
+        known_missing_years=known_missing_years,
         sources=normalized_sources,
         path=path,
     )

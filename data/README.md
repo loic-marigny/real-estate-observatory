@@ -58,6 +58,7 @@ The file contains:
 - source type
 - enabled flag
 - default year
+- known missing years
 - official source page
 - archive or discovered file URL
 - publication metadata

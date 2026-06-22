@@ -49,7 +49,7 @@ CANONICAL_COLUMNS = [
     "comparable_with_previous_years",
     *NUMERIC_COLUMNS,
 ]
-SCHEMA_REPORT_YEARS = [2017, 2018, 2019, 2020, 2021, 2023]
+SECONDARY_DECILE_COLUMNS = {"d2_income", "d3_income", "d4_income", "d5_income", "d6_income", "d7_income", "d8_income"}
 
 
 def log(message: str) -> None:
@@ -126,8 +126,39 @@ def source_for_year(year: int) -> dict[str, object]:
     return load_filosofi_catalog(FILOSOFI_CONFIG_PATH).get_source(year, allow_disabled=True)
 
 
+def available_catalog_years() -> list[int]:
+    return load_filosofi_catalog(FILOSOFI_CONFIG_PATH).available_years
+
+
 def configured_years() -> list[int]:
     return load_filosofi_catalog(FILOSOFI_CONFIG_PATH).enabled_years
+
+
+def known_missing_years() -> list[int]:
+    return load_filosofi_catalog(FILOSOFI_CONFIG_PATH).known_missing_years
+
+
+def source_flag(source: dict[str, object], key: str, default: bool = False) -> bool:
+    value = source.get(key, default)
+    return value if isinstance(value, bool) else default
+
+
+def methodology_breaks_from_catalog() -> list[dict[str, object]]:
+    catalog = load_filosofi_catalog(FILOSOFI_CONFIG_PATH)
+    breaks: list[dict[str, object]] = []
+    for year in catalog.available_years:
+        source = catalog.get_source(year, allow_disabled=True)
+        if not source_flag(source, "methodological_break"):
+            continue
+        label = str(source.get("methodological_break_label") or f"Methodological break for {source.get('dispositif') or 'filosofi'}")
+        breaks.append(
+            {
+                "year": year,
+                "label": label,
+                "comparable_to_previous_year": False,
+            }
+        )
+    return breaks
 
 
 def canonical_mapping() -> dict[str, dict[str, str | None]]:
@@ -146,8 +177,9 @@ def canonical_mapping() -> dict[str, dict[str, str | None]]:
 
 
 def source_generation_for_year(year: int, source: dict[str, object]) -> str:
-    if year == 2017:
-        return "legacy"
+    configured_generation = str(source.get("source_generation") or "").strip()
+    if configured_generation:
+        return configured_generation
     if str(source.get("dispositif") or "") == "filosofi2":
         return "filosofi2"
     return "historical"
@@ -162,13 +194,14 @@ def methodology_version_for_row(dispositif: str, indicator_source: str) -> str:
 
 
 def row_level_comparability(year: int, geography_level: str, indicator_source: str, dispositif: str) -> bool:
+    source = source_for_year(year)
     if indicator_source == "derived_from_communes":
         return False
-    if dispositif == "filosofi2":
+    if source_flag(source, "methodological_break") or dispositif == "filosofi2":
         return False
     if geography_level == "department":
         return False
-    return year in {2018, 2019, 2020, 2021}
+    return source_flag(source, "comparable_with_previous_years")
 
 
 def normalize_numeric(series: pd.Series | None, size: int) -> pd.Series:
@@ -509,17 +542,18 @@ def comparable_for_indicator(
     indicator: str,
     available: bool,
 ) -> bool:
+    source = source_for_year(year)
     if not available:
         return False
     if indicator_source == "derived_from_communes":
         return False
-    if year == 2023:
+    if source_flag(source, "methodological_break"):
         return False
     if geography_level == "department":
-        return year == 2017 and False
-    if indicator in {"d2_income", "d3_income", "d4_income", "d5_income", "d6_income", "d7_income", "d8_income"}:
-        return year in {2019, 2020, 2021}
-    return year in {2018, 2019, 2020, 2021}
+        return False
+    if indicator in SECONDARY_DECILE_COLUMNS:
+        return source_flag(source, "secondary_deciles_comparable_with_previous_years")
+    return source_flag(source, "comparable_with_previous_years")
 
 
 def build_indicator_availability_payload(
@@ -585,19 +619,12 @@ def build_metadata_payload(
             if year is not None
         }
     )
-    expected_years = sorted({*configured_years(), 2022})
     return {
         "source": "INSEE FiLoSoFi",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "available_years": available_years,
-        "missing_years": [year for year in expected_years if year not in available_years],
-        "methodology_breaks": [
-            {
-                "year": 2023,
-                "label": "Passage à Filosofi 2",
-                "comparable_to_previous_year": False,
-            }
-        ],
+        "missing_years": sorted({*known_missing_years(), *[year for year in configured_years() if year not in available_years]}),
+        "methodology_breaks": methodology_breaks_from_catalog(),
         "datasets": {
             "commune_all_years": str(commune_all_years_path().relative_to(ROOT_DIR)).replace("\\", "/"),
             "department_official_all_years": str(department_official_all_years_path().relative_to(ROOT_DIR)).replace("\\", "/"),
@@ -626,6 +653,7 @@ def schema_status_for_row(canonical_column: str, geography_level: str) -> tuple[
 
 def write_schema_report() -> None:
     mapping = canonical_mapping()
+    report_years = available_catalog_years()
     rows: list[dict[str, object]] = []
     for geography_level in ("commune", "department"):
         for canonical_column in [
@@ -641,7 +669,7 @@ def write_schema_report() -> None:
                 "notes": notes,
             }
             year_mapping = mapping.get(canonical_column, {})
-            for year in SCHEMA_REPORT_YEARS:
+            for year in report_years:
                 row[f"{year}_column"] = year_mapping.get(str(year)) or ""
             rows.append(row)
     report = pd.DataFrame(rows)

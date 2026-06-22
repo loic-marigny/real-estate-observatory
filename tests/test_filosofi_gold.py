@@ -1,22 +1,38 @@
 from __future__ import annotations
 
+import json
+import tempfile
 import unittest
+from pathlib import Path
+from unittest import mock
 
 import pandas as pd
 
+from data.scripts.filosofi import build_gold
 from data.scripts.filosofi.build_gold import (
+    available_catalog_years,
     build_commune_frame,
     build_department_frame,
     build_indicator_availability_payload,
     build_metadata_payload,
     canonical_mapping,
     derive_department_frame_from_communes,
+    methodology_breaks_from_catalog,
+    row_level_comparability,
+    write_schema_report,
 )
 
 
 class FiLoSoFiGoldTests(unittest.TestCase):
     def setUp(self) -> None:
         self.mapping = canonical_mapping()
+
+    def write_catalog(self, payload: dict[str, object]) -> Path:
+        temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(temp_dir.cleanup)
+        path = Path(temp_dir.name) / "filosofi_sources.json"
+        path.write_text(json.dumps(payload), encoding="utf-8")
+        return path
 
     def test_2017_commune_keeps_d2_to_d8_and_name_null(self) -> None:
         silver = pd.DataFrame(
@@ -247,6 +263,8 @@ class FiLoSoFiGoldTests(unittest.TestCase):
             [department_derived],
         )
         self.assertIn(2022, metadata["missing_years"])
+        self.assertEqual(metadata["methodology_breaks"][0]["year"], 2023)
+        self.assertEqual(metadata["methodology_breaks"][0]["label"], "Passage à FiLoSoFi 2")
 
     def test_harmonized_schema_is_stable_and_unique(self) -> None:
         frame_2018 = build_commune_frame(
@@ -291,6 +309,123 @@ class FiLoSoFiGoldTests(unittest.TestCase):
         self.assertEqual(frame_2018.dtypes.astype(str).to_dict(), frame_2023.dtypes.astype(str).to_dict())
         combined = pd.concat([frame_2018, frame_2023], ignore_index=True)
         self.assertEqual(int(combined.duplicated(["geography_code", "year"]).sum()), 0)
+
+    def test_schema_report_years_follow_catalog_available_years(self) -> None:
+        self.assertEqual(available_catalog_years(), [2017, 2018, 2019, 2020, 2021, 2023])
+
+    def test_methodology_breaks_follow_catalog_configuration(self) -> None:
+        self.assertEqual(
+            methodology_breaks_from_catalog(),
+            [
+                {
+                    "year": 2023,
+                    "label": "Passage à FiLoSoFi 2",
+                    "comparable_to_previous_year": False,
+                }
+            ],
+        )
+
+    def test_schema_report_year_constant_has_been_removed(self) -> None:
+        self.assertFalse(hasattr(build_gold, "SCHEMA_REPORT_YEARS"))
+
+    def test_row_level_comparability_comes_from_catalog_flags(self) -> None:
+        self.assertFalse(row_level_comparability(2017, "commune", "official_insee", "filosofi"))
+        self.assertTrue(row_level_comparability(2018, "commune", "official_insee", "filosofi"))
+        self.assertFalse(row_level_comparability(2023, "commune", "official_insee", "filosofi2"))
+
+    def test_available_years_include_disabled_year_when_catalog_contains_it(self) -> None:
+        payload = {
+            "dataset": "filosofi",
+            "default_year": 2023,
+            "known_missing_years": [2022],
+            "sources": {
+                "2017": {"enabled": True, "source_type": "data_gouv", "pipeline_mode": "full_pipeline"},
+                "2023": {
+                    "enabled": True,
+                    "source_type": "insee_filosofi2_multigeography",
+                    "pipeline_mode": "full_pipeline",
+                    "methodological_break": True,
+                    "methodological_break_label": "Passage à FiLoSoFi 2",
+                },
+                "2025": {"enabled": False, "source_type": "future_source", "pipeline_mode": "full_pipeline"},
+            },
+        }
+        path = self.write_catalog(payload)
+
+        with mock.patch.object(build_gold, "FILOSOFI_CONFIG_PATH", path):
+            self.assertEqual(available_catalog_years(), [2017, 2023, 2025])
+
+    def test_catalog_driven_breaks_accept_new_year_without_code_change(self) -> None:
+        payload = {
+            "dataset": "filosofi",
+            "default_year": 2023,
+            "known_missing_years": [2022],
+            "sources": {
+                "2023": {
+                    "enabled": True,
+                    "source_type": "insee_filosofi2_multigeography",
+                    "pipeline_mode": "full_pipeline",
+                    "methodological_break": True,
+                    "methodological_break_label": "Passage à FiLoSoFi 2",
+                },
+                "2025": {
+                    "enabled": False,
+                    "source_type": "future_source",
+                    "pipeline_mode": "full_pipeline",
+                    "methodological_break": True,
+                    "methodological_break_label": "Nouvelle rupture test",
+                },
+            },
+        }
+        path = self.write_catalog(payload)
+
+        with mock.patch.object(build_gold, "FILOSOFI_CONFIG_PATH", path):
+            self.assertEqual(
+                methodology_breaks_from_catalog(),
+                [
+                    {
+                        "year": 2023,
+                        "label": "Passage à FiLoSoFi 2",
+                        "comparable_to_previous_year": False,
+                    },
+                    {
+                        "year": 2025,
+                        "label": "Nouvelle rupture test",
+                        "comparable_to_previous_year": False,
+                    },
+                ],
+            )
+
+    def test_schema_report_uses_available_years_from_catalog(self) -> None:
+        payload = {
+            "dataset": "filosofi",
+            "default_year": 2023,
+            "known_missing_years": [2022],
+            "sources": {
+                "2017": {"enabled": True, "source_type": "data_gouv", "pipeline_mode": "full_pipeline"},
+                "2023": {
+                    "enabled": True,
+                    "source_type": "insee_filosofi2_multigeography",
+                    "pipeline_mode": "full_pipeline",
+                    "methodological_break": True,
+                    "methodological_break_label": "Passage à FiLoSoFi 2",
+                },
+                "2025": {"enabled": False, "source_type": "future_source", "pipeline_mode": "full_pipeline"},
+            },
+        }
+        path = self.write_catalog(payload)
+        temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(temp_dir.cleanup)
+        report_dir = Path(temp_dir.name)
+
+        with mock.patch.object(build_gold, "FILOSOFI_CONFIG_PATH", path), \
+            mock.patch.object(build_gold, "REPORTS_DIR", report_dir):
+            write_schema_report()
+
+        report = pd.read_csv(report_dir / "filosofi_schema_comparison.csv")
+        self.assertIn("2017_column", report.columns)
+        self.assertIn("2023_column", report.columns)
+        self.assertIn("2025_column", report.columns)
 
 
 if __name__ == "__main__":
