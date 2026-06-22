@@ -1,6 +1,7 @@
 {
-  "generated_at": "2026-06-12T10:37:48.097042+00:00",
-  "source_file": "data/silver/dvf_silver.parquet",
+  "year": 2024,
+  "generated_at": "2026-06-22T09:42:28.263196+00:00",
+  "source_file": "data/silver/dvf/year=2024/dvf_silver.parquet",
   "filters": {
     "nature_mutation": "Vente",
     "property_types": [
@@ -14,696 +15,793 @@
       "surface_max": 1000
     }
   },
-  "total_sales_count": 1062501,
-  "median_price_m2": 2692.31,
-  "median_surface": 76.0,
+  "total_sales_count": 941429,
+  "median_price_m2": 2622.95,
+  "median_surface": 75.0,
   "sales_count_by_department": {
-    "01": 10147,
-    "02": 7791,
-    "03": 7114,
-    "04": 3942,
-    "05": 3849,
-    "06": 28405,
-    "07": 5687,
-    "08": 3900,
-    "09": 3028,
-    "10": 4679,
-    "11": 8923,
-    "12": 5092,
-    "13": 31758,
-    "14": 14932,
-    "15": 2696,
-    "16": 6951,
-    "17": 14278,
-    "18": 5982,
-    "19": 4991,
-    "21": 8767,
-    "22": 12488,
-    "23": 2508,
-    "24": 9825,
-    "25": 8767,
-    "26": 8786,
-    "27": 11295,
-    "28": 7397,
-    "29": 16259,
-    "2A": 2475,
-    "2B": 2484,
-    "30": 13793,
-    "31": 23290,
-    "32": 3614,
-    "33": 33677,
-    "34": 24756,
-    "35": 17345,
-    "36": 4196,
-    "37": 10633,
-    "38": 17253,
-    "39": 4567,
-    "40": 8667,
-    "41": 6006,
-    "42": 13350,
-    "43": 3556,
-    "44": 24228,
-    "45": 11457,
-    "46": 3883,
-    "47": 6845,
-    "48": 1225,
-    "49": 12626,
-    "50": 10746,
-    "51": 7556,
-    "52": 2465,
-    "53": 6037,
-    "54": 12182,
-    "55": 3068,
-    "56": 14889,
-    "58": 4355,
-    "59": 39041,
-    "60": 11372,
-    "61": 5509,
-    "62": 19713,
-    "63": 12067,
-    "64": 12561,
-    "65": 5122,
-    "66": 12303,
-    "69": 26883,
-    "70": 3892,
-    "71": 10050,
-    "72": 10503,
-    "73": 9796,
-    "74": 15711,
-    "75": 32278,
-    "76": 22643,
-    "77": 19652,
-    "78": 17608,
-    "79": 7035,
-    "80": 9284,
-    "81": 5569,
-    "82": 4864,
-    "83": 29441,
-    "84": 9782,
-    "85": 14531,
-    "86": 7752,
-    "87": 7648,
-    "88": 6623,
-    "89": 8563,
-    "90": 2345,
-    "91": 15420,
-    "92": 19966,
-    "93": 15455,
-    "94": 15031,
-    "95": 12896,
-    "971": 2515,
-    "972": 2006,
-    "973": 1923,
-    "974": 5687
+    "01": 8747,
+    "02": 7082,
+    "03": 6910,
+    "04": 3510,
+    "05": 3428,
+    "06": 25290,
+    "07": 5272,
+    "08": 3709,
+    "09": 3081,
+    "10": 4762,
+    "11": 8535,
+    "12": 4637,
+    "13": 27361,
+    "14": 14045,
+    "15": 2443,
+    "16": 5856,
+    "17": 12512,
+    "18": 5848,
+    "19": 4809,
+    "21": 8223,
+    "22": 11738,
+    "23": 2464,
+    "24": 8874,
+    "25": 7960,
+    "26": 7661,
+    "27": 9772,
+    "28": 6627,
+    "29": 15527,
+    "2A": 2169,
+    "2B": 2227,
+    "30": 12161,
+    "31": 19262,
+    "32": 3023,
+    "33": 22992,
+    "34": 21812,
+    "35": 15461,
+    "36": 3900,
+    "37": 9537,
+    "38": 16604,
+    "39": 4348,
+    "40": 7507,
+    "41": 5701,
+    "42": 12009,
+    "43": 3612,
+    "44": 20801,
+    "45": 10393,
+    "46": 3434,
+    "47": 6217,
+    "48": 1107,
+    "49": 11760,
+    "50": 9903,
+    "51": 7194,
+    "52": 2260,
+    "53": 5282,
+    "54": 11044,
+    "55": 2657,
+    "56": 13525,
+    "58": 4160,
+    "59": 33819,
+    "60": 9990,
+    "61": 5427,
+    "62": 18760,
+    "63": 10385,
+    "64": 11197,
+    "65": 4396,
+    "66": 11145,
+    "69": 23135,
+    "70": 3350,
+    "71": 9233,
+    "72": 9348,
+    "73": 9220,
+    "74": 14227,
+    "75": 28228,
+    "76": 20192,
+    "77": 16855,
+    "78": 14581,
+    "79": 6216,
+    "80": 8462,
+    "81": 5968,
+    "82": 4194,
+    "83": 25365,
+    "84": 8411,
+    "85": 12943,
+    "86": 7318,
+    "87": 6687,
+    "88": 5993,
+    "89": 5766,
+    "90": 2003,
+    "91": 13373,
+    "92": 16331,
+    "93": 13962,
+    "94": 13541,
+    "95": 11753,
+    "971": 2075,
+    "972": 2194,
+    "973": 1138,
+    "974": 5503
   },
   "median_price_m2_by_department": {
-    "01": 2651.52,
-    "02": 1411.25,
-    "03": 1429.17,
-    "04": 2515.97,
-    "05": 3077.4,
-    "06": 5131.25,
-    "07": 2225.76,
-    "08": 1406.25,
-    "09": 1693.3,
-    "10": 1627.91,
-    "11": 2064.1,
-    "12": 1842.55,
-    "13": 3880.87,
-    "14": 2693.0,
-    "15": 1460.27,
-    "16": 1538.46,
-    "17": 2822.92,
-    "18": 1373.68,
-    "19": 1615.38,
-    "21": 2456.14,
-    "22": 2103.33,
-    "23": 1053.19,
-    "24": 1793.89,
-    "25": 2228.07,
-    "26": 2424.84,
-    "27": 2000.0,
-    "28": 1950.5,
-    "29": 2320.0,
-    "2A": 4459.38,
-    "2B": 3292.99,
-    "30": 2654.32,
-    "31": 2874.82,
-    "32": 1751.29,
-    "33": 3666.67,
-    "34": 3342.23,
-    "35": 2796.61,
-    "36": 1213.18,
-    "37": 2371.79,
-    "38": 2728.57,
-    "39": 1795.0,
-    "40": 2814.29,
-    "41": 1643.28,
-    "42": 1884.34,
-    "43": 1666.67,
-    "44": 3076.92,
-    "45": 1968.09,
-    "46": 1800.0,
-    "47": 1696.43,
-    "48": 1759.26,
-    "49": 2284.07,
-    "50": 1969.88,
-    "51": 2177.6,
-    "52": 1177.26,
-    "53": 1666.67,
-    "54": 2067.05,
-    "55": 1306.49,
-    "56": 2717.39,
-    "58": 1187.5,
-    "59": 2261.54,
-    "60": 2298.27,
-    "61": 1465.52,
-    "62": 1869.05,
-    "63": 2068.97,
-    "64": 2960.0,
-    "65": 1905.71,
-    "66": 2624.76,
-    "69": 3803.28,
-    "70": 1341.19,
-    "71": 1650.0,
-    "72": 1708.33,
-    "73": 3811.88,
-    "74": 4607.64,
-    "75": 9896.55,
-    "76": 2250.0,
-    "77": 3100.0,
-    "78": 3913.93,
-    "79": 1509.8,
-    "80": 1905.91,
-    "81": 1862.75,
-    "82": 1954.28,
-    "83": 4181.82,
-    "84": 2918.23,
-    "85": 2491.11,
-    "86": 1705.84,
-    "87": 1670.33,
-    "88": 1592.59,
-    "89": 1910.61,
-    "90": 1677.06,
-    "91": 3254.77,
-    "92": 6664.47,
-    "93": 4244.27,
-    "94": 4951.46,
-    "95": 3444.44,
-    "971": 3571.43,
-    "972": 3191.9,
-    "973": 4603.01,
-    "974": 2982.76
+    "01": 2638.89,
+    "02": 1355.39,
+    "03": 1375.0,
+    "04": 2483.33,
+    "05": 2888.01,
+    "06": 5002.77,
+    "07": 2200.0,
+    "08": 1352.5,
+    "09": 1682.54,
+    "10": 1670.23,
+    "11": 2096.74,
+    "12": 1721.88,
+    "13": 3855.14,
+    "14": 2684.78,
+    "15": 1471.7,
+    "16": 1555.48,
+    "17": 2852.75,
+    "18": 1336.25,
+    "19": 1620.0,
+    "21": 2368.69,
+    "22": 2088.89,
+    "23": 1041.89,
+    "24": 1795.51,
+    "25": 2169.19,
+    "26": 2439.02,
+    "27": 1988.21,
+    "28": 1945.45,
+    "29": 2264.71,
+    "2A": 4444.44,
+    "2B": 3261.54,
+    "30": 2650.79,
+    "31": 2835.82,
+    "32": 1707.32,
+    "33": 3445.95,
+    "34": 3321.43,
+    "35": 2727.27,
+    "36": 1164.72,
+    "37": 2368.42,
+    "38": 2718.26,
+    "39": 1800.0,
+    "40": 2750.0,
+    "41": 1644.44,
+    "42": 1830.28,
+    "43": 1677.86,
+    "44": 3139.53,
+    "45": 1985.29,
+    "46": 1792.45,
+    "47": 1677.85,
+    "48": 1773.26,
+    "49": 2247.25,
+    "50": 1932.2,
+    "51": 2117.08,
+    "52": 1098.1,
+    "53": 1607.28,
+    "54": 2032.87,
+    "55": 1247.42,
+    "56": 2686.57,
+    "58": 1173.91,
+    "59": 2212.96,
+    "60": 2301.22,
+    "61": 1500.0,
+    "62": 1860.1,
+    "63": 2034.67,
+    "64": 2846.94,
+    "65": 1837.42,
+    "66": 2638.34,
+    "69": 3854.17,
+    "70": 1302.92,
+    "71": 1608.18,
+    "72": 1684.62,
+    "73": 3837.55,
+    "74": 4553.57,
+    "75": 9758.62,
+    "76": 2240.38,
+    "77": 3076.92,
+    "78": 3936.36,
+    "79": 1507.35,
+    "80": 1895.92,
+    "81": 1823.23,
+    "82": 1958.06,
+    "83": 4240.96,
+    "84": 2850.0,
+    "85": 2500.0,
+    "86": 1690.56,
+    "87": 1623.08,
+    "88": 1555.0,
+    "89": 1542.86,
+    "90": 1689.43,
+    "91": 3236.64,
+    "92": 6630.71,
+    "93": 4321.15,
+    "94": 5148.48,
+    "95": 3506.67,
+    "971": 3354.95,
+    "972": 3015.42,
+    "973": 3027.17,
+    "974": 2947.37
   },
   "median_price_m2_by_property_type": {
-    "Appartement": 3611.29,
-    "Maison": 2222.22
+    "Appartement": 3542.49,
+    "Maison": 2164.18
   },
   "departments": [
     {
       "department_code": "01",
-      "sales_count": 10147,
-      "median_price_m2": 2651.52
+      "year": 2024,
+      "sales_count": 8747,
+      "median_price_m2": 2638.89
     },
     {
       "department_code": "02",
-      "sales_count": 7791,
-      "median_price_m2": 1411.25
+      "year": 2024,
+      "sales_count": 7082,
+      "median_price_m2": 1355.39
     },
     {
       "department_code": "03",
-      "sales_count": 7114,
-      "median_price_m2": 1429.17
+      "year": 2024,
+      "sales_count": 6910,
+      "median_price_m2": 1375.0
     },
     {
       "department_code": "04",
-      "sales_count": 3942,
-      "median_price_m2": 2515.97
+      "year": 2024,
+      "sales_count": 3510,
+      "median_price_m2": 2483.33
     },
     {
       "department_code": "05",
-      "sales_count": 3849,
-      "median_price_m2": 3077.4
+      "year": 2024,
+      "sales_count": 3428,
+      "median_price_m2": 2888.01
     },
     {
       "department_code": "06",
-      "sales_count": 28405,
-      "median_price_m2": 5131.25
+      "year": 2024,
+      "sales_count": 25290,
+      "median_price_m2": 5002.77
     },
     {
       "department_code": "07",
-      "sales_count": 5687,
-      "median_price_m2": 2225.76
+      "year": 2024,
+      "sales_count": 5272,
+      "median_price_m2": 2200.0
     },
     {
       "department_code": "08",
-      "sales_count": 3900,
-      "median_price_m2": 1406.25
+      "year": 2024,
+      "sales_count": 3709,
+      "median_price_m2": 1352.5
     },
     {
       "department_code": "09",
-      "sales_count": 3028,
-      "median_price_m2": 1693.3
+      "year": 2024,
+      "sales_count": 3081,
+      "median_price_m2": 1682.54
     },
     {
       "department_code": "10",
-      "sales_count": 4679,
-      "median_price_m2": 1627.91
+      "year": 2024,
+      "sales_count": 4762,
+      "median_price_m2": 1670.23
     },
     {
       "department_code": "11",
-      "sales_count": 8923,
-      "median_price_m2": 2064.1
+      "year": 2024,
+      "sales_count": 8535,
+      "median_price_m2": 2096.74
     },
     {
       "department_code": "12",
-      "sales_count": 5092,
-      "median_price_m2": 1842.55
+      "year": 2024,
+      "sales_count": 4637,
+      "median_price_m2": 1721.88
     },
     {
       "department_code": "13",
-      "sales_count": 31758,
-      "median_price_m2": 3880.87
+      "year": 2024,
+      "sales_count": 27361,
+      "median_price_m2": 3855.14
     },
     {
       "department_code": "14",
-      "sales_count": 14932,
-      "median_price_m2": 2693.0
+      "year": 2024,
+      "sales_count": 14045,
+      "median_price_m2": 2684.78
     },
     {
       "department_code": "15",
-      "sales_count": 2696,
-      "median_price_m2": 1460.27
+      "year": 2024,
+      "sales_count": 2443,
+      "median_price_m2": 1471.7
     },
     {
       "department_code": "16",
-      "sales_count": 6951,
-      "median_price_m2": 1538.46
+      "year": 2024,
+      "sales_count": 5856,
+      "median_price_m2": 1555.48
     },
     {
       "department_code": "17",
-      "sales_count": 14278,
-      "median_price_m2": 2822.92
+      "year": 2024,
+      "sales_count": 12512,
+      "median_price_m2": 2852.75
     },
     {
       "department_code": "18",
-      "sales_count": 5982,
-      "median_price_m2": 1373.68
+      "year": 2024,
+      "sales_count": 5848,
+      "median_price_m2": 1336.25
     },
     {
       "department_code": "19",
-      "sales_count": 4991,
-      "median_price_m2": 1615.38
+      "year": 2024,
+      "sales_count": 4809,
+      "median_price_m2": 1620.0
     },
     {
       "department_code": "21",
-      "sales_count": 8767,
-      "median_price_m2": 2456.14
+      "year": 2024,
+      "sales_count": 8223,
+      "median_price_m2": 2368.69
     },
     {
       "department_code": "22",
-      "sales_count": 12488,
-      "median_price_m2": 2103.33
+      "year": 2024,
+      "sales_count": 11738,
+      "median_price_m2": 2088.89
     },
     {
       "department_code": "23",
-      "sales_count": 2508,
-      "median_price_m2": 1053.19
+      "year": 2024,
+      "sales_count": 2464,
+      "median_price_m2": 1041.89
     },
     {
       "department_code": "24",
-      "sales_count": 9825,
-      "median_price_m2": 1793.89
+      "year": 2024,
+      "sales_count": 8874,
+      "median_price_m2": 1795.51
     },
     {
       "department_code": "25",
-      "sales_count": 8767,
-      "median_price_m2": 2228.07
+      "year": 2024,
+      "sales_count": 7960,
+      "median_price_m2": 2169.19
     },
     {
       "department_code": "26",
-      "sales_count": 8786,
-      "median_price_m2": 2424.84
+      "year": 2024,
+      "sales_count": 7661,
+      "median_price_m2": 2439.02
     },
     {
       "department_code": "27",
-      "sales_count": 11295,
-      "median_price_m2": 2000.0
+      "year": 2024,
+      "sales_count": 9772,
+      "median_price_m2": 1988.21
     },
     {
       "department_code": "28",
-      "sales_count": 7397,
-      "median_price_m2": 1950.5
+      "year": 2024,
+      "sales_count": 6627,
+      "median_price_m2": 1945.45
     },
     {
       "department_code": "29",
-      "sales_count": 16259,
-      "median_price_m2": 2320.0
+      "year": 2024,
+      "sales_count": 15527,
+      "median_price_m2": 2264.71
     },
     {
       "department_code": "2A",
-      "sales_count": 2475,
-      "median_price_m2": 4459.38
+      "year": 2024,
+      "sales_count": 2169,
+      "median_price_m2": 4444.44
     },
     {
       "department_code": "2B",
-      "sales_count": 2484,
-      "median_price_m2": 3292.99
+      "year": 2024,
+      "sales_count": 2227,
+      "median_price_m2": 3261.54
     },
     {
       "department_code": "30",
-      "sales_count": 13793,
-      "median_price_m2": 2654.32
+      "year": 2024,
+      "sales_count": 12161,
+      "median_price_m2": 2650.79
     },
     {
       "department_code": "31",
-      "sales_count": 23290,
-      "median_price_m2": 2874.82
+      "year": 2024,
+      "sales_count": 19262,
+      "median_price_m2": 2835.82
     },
     {
       "department_code": "32",
-      "sales_count": 3614,
-      "median_price_m2": 1751.29
+      "year": 2024,
+      "sales_count": 3023,
+      "median_price_m2": 1707.32
     },
     {
       "department_code": "33",
-      "sales_count": 33677,
-      "median_price_m2": 3666.67
+      "year": 2024,
+      "sales_count": 22992,
+      "median_price_m2": 3445.95
     },
     {
       "department_code": "34",
-      "sales_count": 24756,
-      "median_price_m2": 3342.23
+      "year": 2024,
+      "sales_count": 21812,
+      "median_price_m2": 3321.43
     },
     {
       "department_code": "35",
-      "sales_count": 17345,
-      "median_price_m2": 2796.61
+      "year": 2024,
+      "sales_count": 15461,
+      "median_price_m2": 2727.27
     },
     {
       "department_code": "36",
-      "sales_count": 4196,
-      "median_price_m2": 1213.18
+      "year": 2024,
+      "sales_count": 3900,
+      "median_price_m2": 1164.72
     },
     {
       "department_code": "37",
-      "sales_count": 10633,
-      "median_price_m2": 2371.79
+      "year": 2024,
+      "sales_count": 9537,
+      "median_price_m2": 2368.42
     },
     {
       "department_code": "38",
-      "sales_count": 17253,
-      "median_price_m2": 2728.57
+      "year": 2024,
+      "sales_count": 16604,
+      "median_price_m2": 2718.26
     },
     {
       "department_code": "39",
-      "sales_count": 4567,
-      "median_price_m2": 1795.0
-    },
-    {
-      "department_code": "40",
-      "sales_count": 8667,
-      "median_price_m2": 2814.29
-    },
-    {
-      "department_code": "41",
-      "sales_count": 6006,
-      "median_price_m2": 1643.28
-    },
-    {
-      "department_code": "42",
-      "sales_count": 13350,
-      "median_price_m2": 1884.34
-    },
-    {
-      "department_code": "43",
-      "sales_count": 3556,
-      "median_price_m2": 1666.67
-    },
-    {
-      "department_code": "44",
-      "sales_count": 24228,
-      "median_price_m2": 3076.92
-    },
-    {
-      "department_code": "45",
-      "sales_count": 11457,
-      "median_price_m2": 1968.09
-    },
-    {
-      "department_code": "46",
-      "sales_count": 3883,
+      "year": 2024,
+      "sales_count": 4348,
       "median_price_m2": 1800.0
     },
     {
+      "department_code": "40",
+      "year": 2024,
+      "sales_count": 7507,
+      "median_price_m2": 2750.0
+    },
+    {
+      "department_code": "41",
+      "year": 2024,
+      "sales_count": 5701,
+      "median_price_m2": 1644.44
+    },
+    {
+      "department_code": "42",
+      "year": 2024,
+      "sales_count": 12009,
+      "median_price_m2": 1830.28
+    },
+    {
+      "department_code": "43",
+      "year": 2024,
+      "sales_count": 3612,
+      "median_price_m2": 1677.86
+    },
+    {
+      "department_code": "44",
+      "year": 2024,
+      "sales_count": 20801,
+      "median_price_m2": 3139.53
+    },
+    {
+      "department_code": "45",
+      "year": 2024,
+      "sales_count": 10393,
+      "median_price_m2": 1985.29
+    },
+    {
+      "department_code": "46",
+      "year": 2024,
+      "sales_count": 3434,
+      "median_price_m2": 1792.45
+    },
+    {
       "department_code": "47",
-      "sales_count": 6845,
-      "median_price_m2": 1696.43
+      "year": 2024,
+      "sales_count": 6217,
+      "median_price_m2": 1677.85
     },
     {
       "department_code": "48",
-      "sales_count": 1225,
-      "median_price_m2": 1759.26
+      "year": 2024,
+      "sales_count": 1107,
+      "median_price_m2": 1773.26
     },
     {
       "department_code": "49",
-      "sales_count": 12626,
-      "median_price_m2": 2284.07
+      "year": 2024,
+      "sales_count": 11760,
+      "median_price_m2": 2247.25
     },
     {
       "department_code": "50",
-      "sales_count": 10746,
-      "median_price_m2": 1969.88
+      "year": 2024,
+      "sales_count": 9903,
+      "median_price_m2": 1932.2
     },
     {
       "department_code": "51",
-      "sales_count": 7556,
-      "median_price_m2": 2177.6
+      "year": 2024,
+      "sales_count": 7194,
+      "median_price_m2": 2117.08
     },
     {
       "department_code": "52",
-      "sales_count": 2465,
-      "median_price_m2": 1177.26
+      "year": 2024,
+      "sales_count": 2260,
+      "median_price_m2": 1098.1
     },
     {
       "department_code": "53",
-      "sales_count": 6037,
-      "median_price_m2": 1666.67
+      "year": 2024,
+      "sales_count": 5282,
+      "median_price_m2": 1607.28
     },
     {
       "department_code": "54",
-      "sales_count": 12182,
-      "median_price_m2": 2067.05
+      "year": 2024,
+      "sales_count": 11044,
+      "median_price_m2": 2032.87
     },
     {
       "department_code": "55",
-      "sales_count": 3068,
-      "median_price_m2": 1306.49
+      "year": 2024,
+      "sales_count": 2657,
+      "median_price_m2": 1247.42
     },
     {
       "department_code": "56",
-      "sales_count": 14889,
-      "median_price_m2": 2717.39
+      "year": 2024,
+      "sales_count": 13525,
+      "median_price_m2": 2686.57
     },
     {
       "department_code": "58",
-      "sales_count": 4355,
-      "median_price_m2": 1187.5
+      "year": 2024,
+      "sales_count": 4160,
+      "median_price_m2": 1173.91
     },
     {
       "department_code": "59",
-      "sales_count": 39041,
-      "median_price_m2": 2261.54
+      "year": 2024,
+      "sales_count": 33819,
+      "median_price_m2": 2212.96
     },
     {
       "department_code": "60",
-      "sales_count": 11372,
-      "median_price_m2": 2298.27
+      "year": 2024,
+      "sales_count": 9990,
+      "median_price_m2": 2301.22
     },
     {
       "department_code": "61",
-      "sales_count": 5509,
-      "median_price_m2": 1465.52
+      "year": 2024,
+      "sales_count": 5427,
+      "median_price_m2": 1500.0
     },
     {
       "department_code": "62",
-      "sales_count": 19713,
-      "median_price_m2": 1869.05
+      "year": 2024,
+      "sales_count": 18760,
+      "median_price_m2": 1860.1
     },
     {
       "department_code": "63",
-      "sales_count": 12067,
-      "median_price_m2": 2068.97
+      "year": 2024,
+      "sales_count": 10385,
+      "median_price_m2": 2034.67
     },
     {
       "department_code": "64",
-      "sales_count": 12561,
-      "median_price_m2": 2960.0
+      "year": 2024,
+      "sales_count": 11197,
+      "median_price_m2": 2846.94
     },
     {
       "department_code": "65",
-      "sales_count": 5122,
-      "median_price_m2": 1905.71
+      "year": 2024,
+      "sales_count": 4396,
+      "median_price_m2": 1837.42
     },
     {
       "department_code": "66",
-      "sales_count": 12303,
-      "median_price_m2": 2624.76
+      "year": 2024,
+      "sales_count": 11145,
+      "median_price_m2": 2638.34
     },
     {
       "department_code": "69",
-      "sales_count": 26883,
-      "median_price_m2": 3803.28
+      "year": 2024,
+      "sales_count": 23135,
+      "median_price_m2": 3854.17
     },
     {
       "department_code": "70",
-      "sales_count": 3892,
-      "median_price_m2": 1341.19
+      "year": 2024,
+      "sales_count": 3350,
+      "median_price_m2": 1302.92
     },
     {
       "department_code": "71",
-      "sales_count": 10050,
-      "median_price_m2": 1650.0
+      "year": 2024,
+      "sales_count": 9233,
+      "median_price_m2": 1608.18
     },
     {
       "department_code": "72",
-      "sales_count": 10503,
-      "median_price_m2": 1708.33
+      "year": 2024,
+      "sales_count": 9348,
+      "median_price_m2": 1684.62
     },
     {
       "department_code": "73",
-      "sales_count": 9796,
-      "median_price_m2": 3811.88
+      "year": 2024,
+      "sales_count": 9220,
+      "median_price_m2": 3837.55
     },
     {
       "department_code": "74",
-      "sales_count": 15711,
-      "median_price_m2": 4607.64
+      "year": 2024,
+      "sales_count": 14227,
+      "median_price_m2": 4553.57
     },
     {
       "department_code": "75",
-      "sales_count": 32278,
-      "median_price_m2": 9896.55
+      "year": 2024,
+      "sales_count": 28228,
+      "median_price_m2": 9758.62
     },
     {
       "department_code": "76",
-      "sales_count": 22643,
-      "median_price_m2": 2250.0
+      "year": 2024,
+      "sales_count": 20192,
+      "median_price_m2": 2240.38
     },
     {
       "department_code": "77",
-      "sales_count": 19652,
-      "median_price_m2": 3100.0
+      "year": 2024,
+      "sales_count": 16855,
+      "median_price_m2": 3076.92
     },
     {
       "department_code": "78",
-      "sales_count": 17608,
-      "median_price_m2": 3913.93
+      "year": 2024,
+      "sales_count": 14581,
+      "median_price_m2": 3936.36
     },
     {
       "department_code": "79",
-      "sales_count": 7035,
-      "median_price_m2": 1509.8
+      "year": 2024,
+      "sales_count": 6216,
+      "median_price_m2": 1507.35
     },
     {
       "department_code": "80",
-      "sales_count": 9284,
-      "median_price_m2": 1905.91
+      "year": 2024,
+      "sales_count": 8462,
+      "median_price_m2": 1895.92
     },
     {
       "department_code": "81",
-      "sales_count": 5569,
-      "median_price_m2": 1862.75
+      "year": 2024,
+      "sales_count": 5968,
+      "median_price_m2": 1823.23
     },
     {
       "department_code": "82",
-      "sales_count": 4864,
-      "median_price_m2": 1954.28
+      "year": 2024,
+      "sales_count": 4194,
+      "median_price_m2": 1958.06
     },
     {
       "department_code": "83",
-      "sales_count": 29441,
-      "median_price_m2": 4181.82
+      "year": 2024,
+      "sales_count": 25365,
+      "median_price_m2": 4240.96
     },
     {
       "department_code": "84",
-      "sales_count": 9782,
-      "median_price_m2": 2918.23
+      "year": 2024,
+      "sales_count": 8411,
+      "median_price_m2": 2850.0
     },
     {
       "department_code": "85",
-      "sales_count": 14531,
-      "median_price_m2": 2491.11
+      "year": 2024,
+      "sales_count": 12943,
+      "median_price_m2": 2500.0
     },
     {
       "department_code": "86",
-      "sales_count": 7752,
-      "median_price_m2": 1705.84
+      "year": 2024,
+      "sales_count": 7318,
+      "median_price_m2": 1690.56
     },
     {
       "department_code": "87",
-      "sales_count": 7648,
-      "median_price_m2": 1670.33
+      "year": 2024,
+      "sales_count": 6687,
+      "median_price_m2": 1623.08
     },
     {
       "department_code": "88",
-      "sales_count": 6623,
-      "median_price_m2": 1592.59
+      "year": 2024,
+      "sales_count": 5993,
+      "median_price_m2": 1555.0
     },
     {
       "department_code": "89",
-      "sales_count": 8563,
-      "median_price_m2": 1910.61
+      "year": 2024,
+      "sales_count": 5766,
+      "median_price_m2": 1542.86
     },
     {
       "department_code": "90",
-      "sales_count": 2345,
-      "median_price_m2": 1677.06
+      "year": 2024,
+      "sales_count": 2003,
+      "median_price_m2": 1689.43
     },
     {
       "department_code": "91",
-      "sales_count": 15420,
-      "median_price_m2": 3254.77
+      "year": 2024,
+      "sales_count": 13373,
+      "median_price_m2": 3236.64
     },
     {
       "department_code": "92",
-      "sales_count": 19966,
-      "median_price_m2": 6664.47
+      "year": 2024,
+      "sales_count": 16331,
+      "median_price_m2": 6630.71
     },
     {
       "department_code": "93",
-      "sales_count": 15455,
-      "median_price_m2": 4244.27
+      "year": 2024,
+      "sales_count": 13962,
+      "median_price_m2": 4321.15
     },
     {
       "department_code": "94",
-      "sales_count": 15031,
-      "median_price_m2": 4951.46
+      "year": 2024,
+      "sales_count": 13541,
+      "median_price_m2": 5148.48
     },
     {
       "department_code": "95",
-      "sales_count": 12896,
-      "median_price_m2": 3444.44
+      "year": 2024,
+      "sales_count": 11753,
+      "median_price_m2": 3506.67
     },
     {
       "department_code": "971",
-      "sales_count": 2515,
-      "median_price_m2": 3571.43
+      "year": 2024,
+      "sales_count": 2075,
+      "median_price_m2": 3354.95
     },
     {
       "department_code": "972",
-      "sales_count": 2006,
-      "median_price_m2": 3191.9
+      "year": 2024,
+      "sales_count": 2194,
+      "median_price_m2": 3015.42
     },
     {
       "department_code": "973",
-      "sales_count": 1923,
-      "median_price_m2": 4603.01
+      "year": 2024,
+      "sales_count": 1138,
+      "median_price_m2": 3027.17
     },
     {
       "department_code": "974",
-      "sales_count": 5687,
-      "median_price_m2": 2982.76
+      "year": 2024,
+      "sales_count": 5503,
+      "median_price_m2": 2947.37
     }
   ]
 }
