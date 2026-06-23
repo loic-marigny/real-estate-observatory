@@ -611,6 +611,10 @@ def build_metadata_payload(
     official_department_frames: list[pd.DataFrame],
     derived_department_frames: list[pd.DataFrame],
 ) -> dict[str, object]:
+    def published_path(path: Path) -> str:
+        relative_path = str(path.relative_to(ROOT_DIR)).replace("\\", "/")
+        return relative_path.removeprefix("data/")
+
     available_years = sorted(
         {
             year
@@ -626,10 +630,10 @@ def build_metadata_payload(
         "missing_years": sorted({*known_missing_years(), *[year for year in configured_years() if year not in available_years]}),
         "methodology_breaks": methodology_breaks_from_catalog(),
         "datasets": {
-            "commune_all_years": str(commune_all_years_path().relative_to(ROOT_DIR)).replace("\\", "/"),
-            "department_official_all_years": str(department_official_all_years_path().relative_to(ROOT_DIR)).replace("\\", "/"),
-            "department_derived_all_years": str(department_derived_all_years_path().relative_to(ROOT_DIR)).replace("\\", "/"),
-            "indicator_availability": str(indicator_availability_path().relative_to(ROOT_DIR)).replace("\\", "/"),
+            "commune_all_years": published_path(commune_all_years_path()),
+            "department_official_all_years": published_path(department_official_all_years_path()),
+            "department_derived_all_years": published_path(department_derived_all_years_path()),
+            "indicator_availability": published_path(indicator_availability_path()),
         },
     }
 

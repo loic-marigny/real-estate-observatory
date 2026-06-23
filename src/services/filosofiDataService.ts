@@ -1,5 +1,9 @@
 import { duckdbClient } from './duckdbClient'
-import { filosofiAssetUrls, getFilosofiParquetUrl } from './dataAssetConfig'
+import {
+  filosofiAssetUrls,
+  getDataAssetUrl,
+  getFilosofiParquetUrl,
+} from './dataAssetConfig'
 import type {
   FilosofiDepartmentSource,
   FilosofiGeographyLevel,
@@ -255,6 +259,18 @@ export const getAvailableYears = async (): Promise<number[]> => {
   return metadata.availableYears.filter((year) => year !== 2022)
 }
 
+const resolveDatasetUrl = (datasetPath: string): string => {
+  const trimmed = datasetPath.trim()
+  if (!trimmed) {
+    return ''
+  }
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed
+  }
+  const publishedPath = trimmed.replace(/^data\//, '')
+  return getDataAssetUrl(publishedPath)
+}
+
 export const getAvailabilityLevelKey = (
   geographyLevel: FilosofiGeographyLevel,
   departmentSource: FilosofiDepartmentSource = 'official',
@@ -332,6 +348,21 @@ export const resolveFilosofiQueryAsset = (
   geographyLevel: FilosofiGeographyLevel,
   departmentSource: FilosofiDepartmentSource = 'official',
 ): string => getFilosofiParquetUrl(geographyLevel, departmentSource)
+
+export const resolveFilosofiQueryAssetFromMetadata = (
+  metadata: Pick<FilosofiMetadata, 'datasets'>,
+  geographyLevel: FilosofiGeographyLevel,
+  departmentSource: FilosofiDepartmentSource = 'official',
+): string => {
+  const datasetPath =
+    geographyLevel === 'commune'
+      ? metadata.datasets.communeAllYears
+      : departmentSource === 'derived'
+        ? metadata.datasets.departmentDerivedAllYears
+        : metadata.datasets.departmentOfficialAllYears
+
+  return resolveDatasetUrl(datasetPath) || resolveFilosofiQueryAsset(geographyLevel, departmentSource)
+}
 
 export const validateSortColumn = (
   sortBy: string | undefined,
@@ -455,8 +486,10 @@ export const queryFilosofiTrend = async (
     indicators: FilosofiTrendIndicator[]
   },
 ): Promise<FilosofiTrendResult> => {
-  const years = await getAvailableYears()
-  const parquetUrl = resolveFilosofiQueryAsset(
+  const metadata = await getMetadata()
+  const years = metadata.availableYears.filter((year) => year !== 2022)
+  const parquetUrl = resolveFilosofiQueryAssetFromMetadata(
+    metadata,
     params.geographyLevel,
     params.departmentSource,
   )
@@ -569,7 +602,8 @@ export const getMethodologyWarnings = async (
 export const queryFilosofiData = async (
   params: FilosofiQueryParams,
 ): Promise<FilosofiQueryResult> => {
-  const years = await getAvailableYears()
+  const metadata = await getMetadata()
+  const years = metadata.availableYears.filter((year) => year !== 2022)
   if (!years.includes(params.year)) {
     throw new Error(`FiLoSoFi year ${params.year} is not available`)
   }
@@ -589,7 +623,8 @@ export const queryFilosofiData = async (
     )
   }
 
-  const parquetUrl = resolveFilosofiQueryAsset(
+  const parquetUrl = resolveFilosofiQueryAssetFromMetadata(
+    metadata,
     params.geographyLevel,
     departmentSource,
   )

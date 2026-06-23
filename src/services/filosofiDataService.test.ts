@@ -8,6 +8,7 @@ import {
   normalizeFilosofiIndicatorAvailability,
   normalizeFilosofiMetadata,
   resolveFilosofiQueryAsset,
+  resolveFilosofiQueryAssetFromMetadata,
 } from './filosofiDataService'
 
 describe('filosofiDataService', () => {
@@ -134,6 +135,28 @@ describe('filosofiDataService', () => {
     expect(resolveFilosofiQueryAsset('department', 'derived')).toContain(
       'department_derived',
     )
+  })
+
+  it('prefers dataset paths published in metadata for analytical queries', () => {
+    const metadata = normalizeFilosofiMetadata({
+      datasets: {
+        commune_all_years: 'data/custom/communes.parquet',
+        department_official_all_years:
+          'https://cdn.example/filosofi/departments.parquet',
+        department_derived_all_years: 'data/custom/departments-derived.parquet',
+        indicator_availability: 'gold/filosofi/indicator_availability.json',
+      },
+    })
+
+    expect(resolveFilosofiQueryAssetFromMetadata(metadata, 'commune')).toContain(
+      '/custom/communes.parquet',
+    )
+    expect(
+      resolveFilosofiQueryAssetFromMetadata(metadata, 'department', 'official'),
+    ).toBe('https://cdn.example/filosofi/departments.parquet')
+    expect(
+      resolveFilosofiQueryAssetFromMetadata(metadata, 'department', 'derived'),
+    ).toContain('/custom/departments-derived.parquet')
   })
 
   it('builds targeted SQL without SELECT * and with validated columns', () => {

@@ -154,7 +154,19 @@ async function loadDvfYearData(year: number): Promise<Array<Record<string, unkno
   const parquetUrl = getDvfNationalParquetUrl(year)
   const escapedUrl = escapeSqlStringLiteral(parquetUrl)
 
-  const sql = `
+  const decileSql = `
+    SELECT
+      CAST(year AS INTEGER) AS year,
+      median_price_m2,
+      d1_price_m2,
+      d9_price_m2
+    FROM read_parquet(${escapedUrl})
+    WHERE year = ${year}
+      AND median_price_m2 IS NOT NULL
+      AND median_price_m2 > 0
+  `
+
+  const medianOnlySql = `
     SELECT
       CAST(year AS INTEGER) AS year,
       median_price_m2
@@ -164,11 +176,27 @@ async function loadDvfYearData(year: number): Promise<Array<Record<string, unkno
       AND median_price_m2 > 0
   `
 
+  const errorMessage = (error: unknown): string =>
+    error instanceof Error ? error.message : String(error)
+
   try {
-    const rows = await duckdbClient.query(sql)
-    return rows
+    return await duckdbClient.query(decileSql)
   } catch (error) {
-    // File might not exist for this year, silently skip
+    const message = errorMessage(error)
+    if (
+      /column .* does not exist|no such column|Catalog entry not found|Referenced column .* not found/i.test(
+        message,
+      )
+    ) {
+      try {
+        return await duckdbClient.query(medianOnlySql)
+      } catch {
+        // File might not exist for this year, silently skip
+        console.debug(`DVF data not available for year ${year}`)
+        return null
+      }
+    }
+
     console.debug(`DVF data not available for year ${year}`)
     return null
   }
@@ -194,6 +222,10 @@ export async function queryDvfTrend(): Promise<DvfTrendResult> {
       year: typeof row.year === 'number' ? row.year : Number(row.year),
       medianPricePerSquareMeter:
         typeof row.median_price_m2 === 'number' ? row.median_price_m2 : null,
+      d1PricePerSquareMeter:
+        typeof row.d1_price_m2 === 'number' ? row.d1_price_m2 : null,
+      d9PricePerSquareMeter:
+        typeof row.d9_price_m2 === 'number' ? row.d9_price_m2 : null,
     }))
     .filter((point) => Number.isFinite(point.year))
     .sort((a, b) => a.year - b.year)

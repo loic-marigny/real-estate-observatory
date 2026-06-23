@@ -266,6 +266,19 @@ class FiLoSoFiGoldTests(unittest.TestCase):
         self.assertEqual(metadata["methodology_breaks"][0]["year"], 2023)
         self.assertEqual(metadata["methodology_breaks"][0]["label"], "Passage à FiLoSoFi 2")
 
+        self.assertEqual(
+            metadata["datasets"]["commune_all_years"],
+            "gold/filosofi/commune_all_years.parquet",
+        )
+        self.assertEqual(
+            metadata["datasets"]["department_official_all_years"],
+            "gold/filosofi/department_official/department_all_years.parquet",
+        )
+        self.assertEqual(
+            metadata["datasets"]["indicator_availability"],
+            "gold/filosofi/indicator_availability.json",
+        )
+
     def test_harmonized_schema_is_stable_and_unique(self) -> None:
         frame_2018 = build_commune_frame(
             pd.DataFrame(

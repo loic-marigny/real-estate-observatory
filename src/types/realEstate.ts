@@ -180,6 +180,8 @@ export type FilosofiTrendIndicator =
 export type DvfTrendPoint = {
   year: number
   medianPricePerSquareMeter: number | null
+  d1PricePerSquareMeter?: number | null
+  d9PricePerSquareMeter?: number | null
 }
 
 export type DvfTrendResult = {

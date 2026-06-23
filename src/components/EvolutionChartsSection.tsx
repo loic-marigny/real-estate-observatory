@@ -99,17 +99,62 @@ const buildChartOptions = (
 const buildDvfChartOptions = (dvfResult: DvfTrendResult) => {
   const years = dvfResult.availableYears.map((year) => String(year))
 
+  const seriesTemplates = [
+    {
+      name: 'Décile D1 (10% plus bas)',
+      field: 'd1PricePerSquareMeter' as const,
+      color: 'rgba(82, 150, 255, 0.8)',
+      area: 'rgba(82, 150, 255, 0.1)',
+    },
+    {
+      name: 'Prix médian au m²',
+      field: 'medianPricePerSquareMeter' as const,
+      color: 'rgba(198, 96, 55, 0.8)',
+      area: 'rgba(198, 96, 55, 0.1)',
+    },
+    {
+      name: 'Décile D9 (10% plus riches)',
+      field: 'd9PricePerSquareMeter' as const,
+      color: 'rgba(57, 186, 116, 0.8)',
+      area: 'rgba(57, 186, 116, 0.1)',
+    },
+  ]
+
+  const series = seriesTemplates
+    .map((template) => ({
+      ...template,
+      values: dvfResult.points
+        .sort((a, b) => a.year - b.year)
+        .map((point) =>
+          point[template.field] === null || point[template.field] === undefined
+            ? null
+            : Number((point[template.field] as number).toFixed(0)),
+        ),
+    }))
+    .filter((seriesEntry) => seriesEntry.values.some((value) => value !== null))
+    .map((seriesEntry) => ({
+      name: seriesEntry.name,
+      type: 'line',
+      smooth: true,
+      connectNulls: false,
+      lineStyle: { color: seriesEntry.color },
+      areaStyle: { color: seriesEntry.area },
+      emphasis: { focus: 'series' },
+      data: seriesEntry.values,
+    }))
+
   return {
     tooltip: {
       trigger: 'axis',
       formatter: (params: Array<Record<string, unknown>>) =>
         params
           .map((item) => {
+            const seriesName = String(item.seriesName ?? 'Valeur')
             const value = item.value
             if (value === null || value === undefined) {
-              return `Prix médian: N/A`
+              return `${seriesName}: N/A`
             }
-            return `Prix médian: ${formatCurrency(Number(value))} €`
+            return `${seriesName}: ${formatCurrency(Number(value))} €`
           })
           .join('<br/>'),
     },
@@ -148,24 +193,7 @@ const buildDvfChartOptions = (dvfResult: DvfTrendResult) => {
         color: 'var(--color-muted)',
       },
     },
-    series: [
-      {
-        name: 'Prix médian au m²',
-        type: 'line',
-        smooth: true,
-        connectNulls: false,
-        lineStyle: { color: 'rgba(198, 96, 55, 0.8)' },
-        areaStyle: { color: 'rgba(198, 96, 55, 0.1)' },
-        emphasis: { focus: 'series' },
-        data: dvfResult.points
-          .sort((a, b) => a.year - b.year)
-          .map((point) =>
-            point.medianPricePerSquareMeter === null
-              ? null
-              : Number(point.medianPricePerSquareMeter.toFixed(0)),
-          ),
-      },
-    ],
+    series,
   }
 }
 
@@ -177,7 +205,8 @@ export default function EvolutionChartsSection({
   const [trendResult, setTrendResult] = useState<FilosofiTrendResult | null>(null)
   const [dvfResult, setDvfResult] = useState<DvfTrendResult | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [loadError, setLoadError] = useState(false)
+  const [filosofiLoadError, setFilosofiLoadError] = useState(false)
+  const [dvfLoadError, setDvfLoadError] = useState(false)
   const [visibleIndicators, setVisibleIndicators] = useState<Set<FilosofiTrendIndicator>>(
     new Set(FILOSOFI_TREND_INDICATORS),
   )
@@ -185,7 +214,7 @@ export default function EvolutionChartsSection({
   useEffect(() => {
     let active = true
 
-    Promise.all([
+    Promise.allSettled([
       queryFilosofiTrend({
         geographyLevel: 'commune',
         departmentSource: 'official',
@@ -197,17 +226,26 @@ export default function EvolutionChartsSection({
         if (!active) {
           return
         }
-        console.log('FiLoSoFi trend loaded:', filosofiResult)
-        console.log('DVF trend loaded:', dvfData)
-        setTrendResult(filosofiResult)
-        setDvfResult(dvfData)
-      })
-      .catch((error) => {
-        if (!active) {
-          return
+
+        if (filosofiResult.status === 'fulfilled') {
+          console.log('FiLoSoFi trend loaded:', filosofiResult.value)
+          setTrendResult(filosofiResult.value)
+          setFilosofiLoadError(false)
+        } else {
+          console.error('FiLoSoFi trend data error:', filosofiResult.reason)
+          setTrendResult(null)
+          setFilosofiLoadError(true)
         }
-        console.error('Trend data error:', error)
-        setLoadError(true)
+
+        if (dvfData.status === 'fulfilled') {
+          console.log('DVF trend loaded:', dvfData.value)
+          setDvfResult(dvfData.value)
+          setDvfLoadError(false)
+        } else {
+          console.error('DVF trend data error:', dvfData.reason)
+          setDvfResult(null)
+          setDvfLoadError(true)
+        }
       })
       .finally(() => {
         if (active) {
@@ -246,7 +284,7 @@ export default function EvolutionChartsSection({
 
       {isLoading ? (
         <p className="panel__footnote">{loadingMessage}</p>
-      ) : loadError ? (
+      ) : filosofiLoadError && dvfLoadError ? (
         <p className="panel__footnote">{errorMessage}</p>
       ) : trendResult || dvfResult ? (
         <>
@@ -291,6 +329,13 @@ export default function EvolutionChartsSection({
               </div>
             )}
 
+            {!trendResult && filosofiLoadError ? (
+              <div className="evolution-chart-container">
+                <h3 className="evolution-chart-title">Revenus (FiLoSoFi)</h3>
+                <p className="panel__footnote">{errorMessage}</p>
+              </div>
+            ) : null}
+
             {dvfResult && (
               <div className="evolution-chart-container">
                 <h3 className="evolution-chart-title">Prix immobilier (DVF)</h3>
@@ -311,6 +356,13 @@ export default function EvolutionChartsSection({
                 </p>
               </div>
             )}
+
+            {!dvfResult && dvfLoadError ? (
+              <div className="evolution-chart-container">
+                <h3 className="evolution-chart-title">Prix immobilier (DVF)</h3>
+                <p className="panel__footnote">Impossible de charger les tendances DVF.</p>
+              </div>
+            ) : null}
           </div>
         </>
       ) : (

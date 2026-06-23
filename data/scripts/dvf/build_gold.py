@@ -53,6 +53,35 @@ def compute_median(series: pd.Series) -> float | None:
     return round(float(cleaned.median()), 2)
 
 
+def compute_quantile(series: pd.Series, quantile: float) -> float | None:
+    cleaned = series.dropna()
+    if cleaned.empty:
+        return None
+    return round(float(cleaned.quantile(quantile)), 2)
+
+
+def build_national_row(
+    df: pd.DataFrame,
+    year: int,
+    generated_at: str,
+    source_file: str,
+) -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {
+                "year": year,
+                "generated_at": generated_at,
+                "source_file": source_file,
+                "total_sales_count": int(len(df)),
+                "median_price_m2": compute_median(df["price_m2"]),
+                "d1_price_m2": compute_quantile(df["price_m2"], 0.1),
+                "d9_price_m2": compute_quantile(df["price_m2"], 0.9),
+                "median_surface": compute_median(df["surface_reelle_bati"]),
+            }
+        ]
+    )
+
+
 def main() -> None:
     args = parse_args()
     input_path = silver_path(args.year)
@@ -81,17 +110,12 @@ def main() -> None:
     df = pd.read_parquet(input_path, columns=columns)
 
     generated_at = datetime.now(timezone.utc).isoformat()
-    national_row = pd.DataFrame(
-        [
-            {
-                "year": args.year,
-                "generated_at": generated_at,
-                "source_file": str(input_path.relative_to(ROOT_DIR)).replace("\\", "/"),
-                "total_sales_count": int(len(df)),
-                "median_price_m2": compute_median(df["price_m2"]),
-                "median_surface": compute_median(df["surface_reelle_bati"]),
-            }
-        ]
+    source_file = str(input_path.relative_to(ROOT_DIR)).replace("\\", "/")
+    national_row = build_national_row(
+        df,
+        args.year,
+        generated_at,
+        source_file,
     )
 
     by_department = (
@@ -147,10 +171,12 @@ def main() -> None:
     summary = {
         "year": args.year,
         "generated_at": generated_at,
-        "source_file": national_row.at[0, "source_file"],
+        "source_file": source_file,
         "filters": FILTERS,
         "total_sales_count": int(national_row.at[0, "total_sales_count"]),
         "median_price_m2": national_row.at[0, "median_price_m2"],
+        "d1_price_m2": national_row.at[0, "d1_price_m2"],
+        "d9_price_m2": national_row.at[0, "d9_price_m2"],
         "median_surface": national_row.at[0, "median_surface"],
         "sales_count_by_department": {
             row["department_code"]: int(row["sales_count"])

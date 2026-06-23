@@ -2,8 +2,8 @@
 /// <reference types="vite/client" />
 
 /** @vitest-environment jsdom */
-import { describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 
 vi.mock('echarts-for-react', () => ({
   default: () => <div data-testid="echarts" />,
@@ -26,6 +26,11 @@ const mockQueryFilosofiTrend = vi.mocked(queryFilosofiTrend)
 const mockQueryDvfTrend = vi.mocked(queryDvfTrend)
 
 describe('EvolutionChartsSection', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    cleanup()
+  })
+
   it('renders the description and loads trend data for both FiLoSoFi and DVF', async () => {
     mockQueryFilosofiTrend.mockResolvedValue({
       availableYears: [2017, 2018, 2023],
@@ -68,18 +73,26 @@ describe('EvolutionChartsSection', () => {
         {
           year: 2021,
           medianPricePerSquareMeter: 2350.0,
+          d1PricePerSquareMeter: 1800.0,
+          d9PricePerSquareMeter: 3200.0,
         },
         {
           year: 2022,
           medianPricePerSquareMeter: 2480.0,
+          d1PricePerSquareMeter: 1900.0,
+          d9PricePerSquareMeter: 3300.0,
         },
         {
           year: 2023,
           medianPricePerSquareMeter: 2550.0,
+          d1PricePerSquareMeter: 1950.0,
+          d9PricePerSquareMeter: 3400.0,
         },
         {
           year: 2024,
           medianPricePerSquareMeter: 2622.95,
+          d1PricePerSquareMeter: 2000.0,
+          d9PricePerSquareMeter: 3500.0,
         },
       ],
     })
@@ -100,5 +113,38 @@ describe('EvolutionChartsSection', () => {
 
     const echartsElements = screen.getAllByTestId('echarts')
     expect(echartsElements.length).toBe(2)
+  })
+
+  it('keeps the DVF chart visible when FiLoSoFi loading fails', async () => {
+    mockQueryFilosofiTrend.mockRejectedValue(new Error('FiLoSoFi unavailable'))
+    mockQueryDvfTrend.mockResolvedValue({
+      availableYears: [2023, 2024],
+      points: [
+        {
+          year: 2023,
+          medianPricePerSquareMeter: 2550,
+          d1PricePerSquareMeter: 1950,
+          d9PricePerSquareMeter: 3400,
+        },
+        {
+          year: 2024,
+          medianPricePerSquareMeter: 2623,
+          d1PricePerSquareMeter: 2000,
+          d9PricePerSquareMeter: 3500,
+        },
+      ],
+    })
+
+    render(<EvolutionChartsSection description="Test partial failure." />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Prix immobilier (DVF)')).toBeTruthy()
+    })
+
+    expect(screen.getByText('Revenus (FiLoSoFi)')).toBeTruthy()
+    expect(
+      screen.getByText(/Impossible de charger les tendances FiLoSoFi/),
+    ).toBeTruthy()
+    expect(screen.getAllByTestId('echarts').length).toBe(1)
   })
 })

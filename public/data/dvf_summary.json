@@ -1,6 +1,6 @@
 {
   "year": 2024,
-  "generated_at": "2026-06-22T09:42:28.263196+00:00",
+  "generated_at": "2026-06-23T09:00:32.342003+00:00",
   "source_file": "data/silver/dvf/year=2024/dvf_silver.parquet",
   "filters": {
     "nature_mutation": "Vente",
@@ -17,6 +17,8 @@
   },
   "total_sales_count": 941429,
   "median_price_m2": 2622.95,
+  "d1_price_m2": 1079.55,
+  "d9_price_m2": 7545.58,
   "median_surface": 75.0,
   "sales_count_by_department": {
     "01": 8747,
