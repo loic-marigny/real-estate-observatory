@@ -26,10 +26,11 @@ type DepartmentChoroplethProps = {
 }
 
 type Bounds = {
-  minX: number
-  maxX: number
-  minY: number
-  maxY: number
+  minProjectedX: number
+  maxProjectedX: number
+  minProjectedY: number
+  maxProjectedY: number
+  referenceLatitudeRadians: number
 }
 
 type PreparedFeature = {
@@ -41,14 +42,26 @@ type PreparedFeature = {
   centroid: { x: number; y: number }
 }
 
+type MapCenter = {
+  x: number
+  y: number
+}
+
 const MAP_URL = '/data/departements.geojson'
 const MAINLAND_WIDTH = 760
 const MAINLAND_HEIGHT = 660
-const INSET_WIDTH = 250
-const INSET_HEIGHT = 250
 const MAP_PADDING = 18
-const IDF_CODES = ['75', '77', '78', '91', '92', '93', '94', '95']
 const DEFAULT_FOCUS_CODE = '75'
+const DEFAULT_CENTER = {
+  x: MAINLAND_WIDTH / 2,
+  y: MAINLAND_HEIGHT / 2,
+}
+const MIN_ZOOM = 1
+const MAX_ZOOM = 4
+const ZOOM_FACTOR = 1.35
+
+const clamp = (value: number, min: number, max: number): number =>
+  Math.min(max, Math.max(min, value))
 
 const formatInteger = (value: number): string =>
   new Intl.NumberFormat('fr-FR', {
@@ -56,7 +69,16 @@ const formatInteger = (value: number): string =>
   }).format(value)
 
 const formatCurrencyPerSquareMeter = (value: number | null): string =>
-  value === null ? 'N/A' : `${formatInteger(value)} € / m²`
+  value === null ? 'N/A' : `${formatInteger(value)} €/m²`
+
+const projectGeoPoint = (
+  longitude: number,
+  latitude: number,
+  referenceLatitudeRadians: number,
+): { projectedX: number; projectedY: number } => ({
+  projectedX: longitude * Math.cos(referenceLatitudeRadians),
+  projectedY: latitude,
+})
 
 const extractPolygons = (feature: DepartmentFeature): GeoPolygon[] => {
   if (feature.geometry.type === 'Polygon') {
@@ -68,24 +90,54 @@ const extractPolygons = (feature: DepartmentFeature): GeoPolygon[] => {
   )
 }
 
-const buildBounds = (features: DepartmentFeature[]): Bounds => {
-  let minX = Number.POSITIVE_INFINITY
-  let maxX = Number.NEGATIVE_INFINITY
-  let minY = Number.POSITIVE_INFINITY
-  let maxY = Number.NEGATIVE_INFINITY
+const buildBounds = (features: DepartmentFeature[]): Bounds | null => {
+  if (!features.length) {
+    return null
+  }
+
+  let minLatitude = Number.POSITIVE_INFINITY
+  let maxLatitude = Number.NEGATIVE_INFINITY
 
   for (const feature of features) {
     for (const ring of extractPolygons(feature)) {
-      for (const [longitude, latitude] of ring) {
-        minX = Math.min(minX, longitude)
-        maxX = Math.max(maxX, longitude)
-        minY = Math.min(minY, latitude)
-        maxY = Math.max(maxY, latitude)
+      for (const [, latitude] of ring) {
+        minLatitude = Math.min(minLatitude, latitude)
+        maxLatitude = Math.max(maxLatitude, latitude)
       }
     }
   }
 
-  return { minX, maxX, minY, maxY }
+  const referenceLatitudeRadians =
+    ((minLatitude + maxLatitude) / 2) * (Math.PI / 180)
+
+  let minProjectedX = Number.POSITIVE_INFINITY
+  let maxProjectedX = Number.NEGATIVE_INFINITY
+  let minProjectedY = Number.POSITIVE_INFINITY
+  let maxProjectedY = Number.NEGATIVE_INFINITY
+
+  for (const feature of features) {
+    for (const ring of extractPolygons(feature)) {
+      for (const [longitude, latitude] of ring) {
+        const { projectedX, projectedY } = projectGeoPoint(
+          longitude,
+          latitude,
+          referenceLatitudeRadians,
+        )
+        minProjectedX = Math.min(minProjectedX, projectedX)
+        maxProjectedX = Math.max(maxProjectedX, projectedX)
+        minProjectedY = Math.min(minProjectedY, projectedY)
+        maxProjectedY = Math.max(maxProjectedY, projectedY)
+      }
+    }
+  }
+
+  return {
+    minProjectedX,
+    maxProjectedX,
+    minProjectedY,
+    maxProjectedY,
+    referenceLatitudeRadians,
+  }
 }
 
 const projectPoint = (
@@ -95,8 +147,13 @@ const projectPoint = (
   width: number,
   height: number,
 ): { x: number; y: number } => {
-  const spanX = bounds.maxX - bounds.minX
-  const spanY = bounds.maxY - bounds.minY
+  const { projectedX, projectedY } = projectGeoPoint(
+    longitude,
+    latitude,
+    bounds.referenceLatitudeRadians,
+  )
+  const spanX = Math.max(bounds.maxProjectedX - bounds.minProjectedX, 0.0001)
+  const spanY = Math.max(bounds.maxProjectedY - bounds.minProjectedY, 0.0001)
   const scale = Math.min(
     (width - MAP_PADDING * 2) / spanX,
     (height - MAP_PADDING * 2) / spanY,
@@ -105,8 +162,8 @@ const projectPoint = (
   const offsetY = (height - spanY * scale) / 2
 
   return {
-    x: offsetX + (longitude - bounds.minX) * scale,
-    y: offsetY + (bounds.maxY - latitude) * scale,
+    x: offsetX + (projectedX - bounds.minProjectedX) * scale,
+    y: offsetY + (bounds.maxProjectedY - projectedY) * scale,
   }
 }
 
@@ -199,6 +256,15 @@ const getFocusDepartment = (
   )
 }
 
+const buildViewBox = (center: MapCenter, zoomLevel: number): string => {
+  const viewWidth = MAINLAND_WIDTH / zoomLevel
+  const viewHeight = MAINLAND_HEIGHT / zoomLevel
+  const x = clamp(center.x - viewWidth / 2, 0, MAINLAND_WIDTH - viewWidth)
+  const y = clamp(center.y - viewHeight / 2, 0, MAINLAND_HEIGHT - viewHeight)
+
+  return `${x} ${y} ${viewWidth} ${viewHeight}`
+}
+
 export function DepartmentChoropleth({
   departments,
 }: DepartmentChoroplethProps) {
@@ -206,6 +272,8 @@ export function DepartmentChoropleth({
     useState<DepartmentFeatureCollection | null>(null)
   const [hoveredCode, setHoveredCode] = useState<string | null>(null)
   const [mapError, setMapError] = useState<string | null>(null)
+  const [zoomLevel, setZoomLevel] = useState<number>(MIN_ZOOM)
+  const [mapCenter, setMapCenter] = useState<MapCenter>(DEFAULT_CENTER)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -239,7 +307,7 @@ export function DepartmentChoropleth({
     return (
       <div className="choropleth-card choropleth-card--empty">
         <p className="choropleth-card__status">
-          Le résumé DVF est en cours de chargement pour alimenter la carte.
+          Le resume DVF est en cours de chargement pour alimenter la carte.
         </p>
       </div>
     )
@@ -249,7 +317,7 @@ export function DepartmentChoropleth({
     return (
       <div className="choropleth-card choropleth-card--empty">
         <p className="choropleth-card__status">
-          Impossible de charger le fond de carte départemental.
+          Impossible de charger le fond de carte departemental.
         </p>
         <p className="choropleth-card__substatus">{mapError}</p>
       </div>
@@ -259,7 +327,9 @@ export function DepartmentChoropleth({
   if (!featureCollection) {
     return (
       <div className="choropleth-card choropleth-card--empty">
-        <p className="choropleth-card__status">Chargement du fond de carte départemental…</p>
+        <p className="choropleth-card__status">
+          Chargement du fond de carte departemental...
+        </p>
       </div>
     )
   }
@@ -267,18 +337,34 @@ export function DepartmentChoropleth({
   const byCode = new Map(
     departments.map((department) => [department.departmentCode, department] as const),
   )
-  const visibleFeatures = featureCollection.features.filter((feature) =>
-    byCode.has(feature.properties.code),
-  )
+  const visibleFeatures = featureCollection.features
+
+  if (!visibleFeatures.length) {
+    return (
+      <div className="choropleth-card choropleth-card--empty">
+        <p className="choropleth-card__status">
+          Les donnees DVF chargees ne correspondent a aucun departement du fond de
+          carte.
+        </p>
+        <p className="choropleth-card__substatus">
+          Verifier les codes departement et le GeoJSON public.
+        </p>
+      </div>
+    )
+  }
 
   const values = visibleFeatures
     .map((feature) => byCode.get(feature.properties.code)?.medianPricePerSquareMeter ?? null)
     .filter((value): value is number => value !== null)
 
-  const minValue = Math.min(...values)
-  const maxValue = Math.max(...values)
+  const minValue = values.length ? Math.min(...values) : 0
+  const maxValue = values.length ? Math.max(...values) : 0
 
   const mainlandBounds = buildBounds(visibleFeatures)
+  if (!mainlandBounds) {
+    return null
+  }
+
   const mainlandPrepared: PreparedFeature[] = visibleFeatures.map((feature) => {
     const department = byCode.get(feature.properties.code) ?? null
 
@@ -292,42 +378,81 @@ export function DepartmentChoropleth({
     }
   })
 
-  const idfFeatures = visibleFeatures.filter((feature) =>
-    IDF_CODES.includes(feature.properties.code),
-  )
-  const idfBounds = buildBounds(idfFeatures)
-  const idfPrepared: PreparedFeature[] = idfFeatures.map((feature) => {
-    const department = byCode.get(feature.properties.code) ?? null
-
-    return {
-      code: feature.properties.code,
-      name: feature.properties.nom,
-      value: department?.medianPricePerSquareMeter ?? null,
-      salesCount: department?.salesCount ?? 0,
-      path: buildPath(feature, idfBounds, INSET_WIDTH, INSET_HEIGHT),
-      centroid: buildCentroid(feature, idfBounds, INSET_WIDTH, INSET_HEIGHT),
-    }
-  })
-
   const focusDepartment = getFocusDepartment(departments, hoveredCode)
-  const highestDepartments = [...departments]
-    .filter((department) => department.medianPricePerSquareMeter !== null)
-    .sort(
-      (left, right) =>
-        (right.medianPricePerSquareMeter ?? 0) - (left.medianPricePerSquareMeter ?? 0),
-    )
-    .slice(0, 4)
+  const fallbackFeature =
+    mainlandPrepared.find((feature) => feature.code === focusDepartment?.departmentCode) ??
+    mainlandPrepared[0]
+  const focusFeature =
+    mainlandPrepared.find((feature) => feature.code === hoveredCode) ?? fallbackFeature
+  const focusDepartmentSummary =
+    (focusFeature ? byCode.get(focusFeature.code) : null) ?? focusDepartment
+
+  const handleZoomIn = () => {
+    setZoomLevel((current) => clamp(current * ZOOM_FACTOR, MIN_ZOOM, MAX_ZOOM))
+  }
+
+  const handleZoomOut = () => {
+    setZoomLevel((current) => {
+      const nextZoom = clamp(current / ZOOM_FACTOR, MIN_ZOOM, MAX_ZOOM)
+      if (nextZoom === MIN_ZOOM) {
+        setMapCenter(DEFAULT_CENTER)
+      }
+      return nextZoom
+    })
+  }
+
+  const handleResetZoom = () => {
+    setZoomLevel(MIN_ZOOM)
+    setMapCenter(DEFAULT_CENTER)
+  }
+
+  const handleDepartmentClick = (feature: PreparedFeature) => {
+    setHoveredCode(feature.code)
+    setMapCenter(feature.centroid)
+    setZoomLevel((current) => clamp(Math.max(current, ZOOM_FACTOR * 1.2), MIN_ZOOM, MAX_ZOOM))
+  }
+
+  const mapViewBox = buildViewBox(mapCenter, zoomLevel)
 
   return (
     <div className="choropleth-card">
       <div className="choropleth-shell">
         <div className="choropleth-stage">
           <div className="choropleth-map-wrap">
+            <div className="choropleth-controls" aria-label="Controle du zoom">
+              <button
+                type="button"
+                className="choropleth-controls__button"
+                onClick={handleZoomOut}
+                disabled={zoomLevel <= MIN_ZOOM}
+                aria-label="Zoomer en arriere"
+              >
+                -
+              </button>
+              <button
+                type="button"
+                className="choropleth-controls__button"
+                onClick={handleZoomIn}
+                disabled={zoomLevel >= MAX_ZOOM}
+                aria-label="Zoomer"
+              >
+                +
+              </button>
+              <button
+                type="button"
+                className="choropleth-controls__button choropleth-controls__button--reset"
+                onClick={handleResetZoom}
+                disabled={zoomLevel === MIN_ZOOM}
+              >
+                Recentrer
+              </button>
+            </div>
+
             <svg
               className="choropleth-map"
-              viewBox={`0 0 ${MAINLAND_WIDTH} ${MAINLAND_HEIGHT}`}
+              viewBox={mapViewBox}
               role="img"
-              aria-label="Carte choroplèthe des départements par prix médian au mètre carré"
+              aria-label="Carte choroplethe des departements par prix median au metre carre"
             >
               {mainlandPrepared.map((feature) => (
                 <path
@@ -341,122 +466,36 @@ export function DepartmentChoropleth({
                   fill={getDepartmentColor(feature.value, minValue, maxValue)}
                   onMouseEnter={() => setHoveredCode(feature.code)}
                   onMouseLeave={() => setHoveredCode(null)}
+                  onClick={() => handleDepartmentClick(feature)}
                 />
               ))}
             </svg>
-
-            <div className="choropleth-inset">
-              <div className="choropleth-inset__header">
-                <span className="choropleth-inset__eyebrow">Zoom</span>
-                <strong>Île-de-France</strong>
-              </div>
-              <svg
-                className="choropleth-map choropleth-map--inset"
-                viewBox={`0 0 ${INSET_WIDTH} ${INSET_HEIGHT}`}
-                role="img"
-                aria-label="Zoom sur les départements d'Île-de-France"
-              >
-                {idfPrepared.map((feature) => (
-                  <g key={feature.code}>
-                    <path
-                      d={feature.path}
-                      className={
-                        hoveredCode === feature.code
-                          ? 'choropleth-map__department choropleth-map__department--active'
-                          : 'choropleth-map__department'
-                      }
-                      fill={getDepartmentColor(feature.value, minValue, maxValue)}
-                      onMouseEnter={() => setHoveredCode(feature.code)}
-                      onMouseLeave={() => setHoveredCode(null)}
-                    />
-                    <text
-                      x={feature.centroid.x}
-                      y={feature.centroid.y}
-                      className="choropleth-map__label"
-                    >
-                      {feature.code}
-                    </text>
-                  </g>
-                ))}
-              </svg>
-            </div>
           </div>
 
-          <div className="choropleth-legend">
-            <div>
-              <span className="choropleth-legend__label">Prix médian bas</span>
-              <strong>{formatCurrencyPerSquareMeter(minValue)}</strong>
-            </div>
-            <div className="choropleth-legend__gradient" aria-hidden="true" />
-            <div className="choropleth-legend__end">
-              <span className="choropleth-legend__label">Prix médian haut</span>
-              <strong>{formatCurrencyPerSquareMeter(maxValue)}</strong>
-            </div>
-          </div>
-        </div>
-
-        <aside className="choropleth-sidebar">
           <div className="choropleth-callout">
             <p className="choropleth-callout__eyebrow">
-              {hoveredCode ? 'Département survolé' : 'Repère'}
+              {hoveredCode ? 'Departement survole' : 'Repere'}
             </p>
             <h3>
-              {focusDepartment?.departmentCode ?? '--'} ·{' '}
-              {mainlandPrepared.find(
-                (feature) => feature.code === focusDepartment?.departmentCode,
-              )?.name ?? 'France'}
+              {focusFeature?.code ?? '--'} · {focusFeature?.name ?? 'France'}
             </h3>
             <p className="choropleth-callout__value">
               {formatCurrencyPerSquareMeter(
-                focusDepartment?.medianPricePerSquareMeter ?? null,
+                focusDepartmentSummary?.medianPricePerSquareMeter ?? null,
               )}
             </p>
             <p className="choropleth-callout__meta">
-              {focusDepartment
-                ? `${formatInteger(focusDepartment.salesCount)} ventes résidentielles retenues`
-                : 'Aucune donnée disponible'}
+              {focusDepartmentSummary
+                ? `${formatInteger(focusDepartmentSummary.salesCount)} ventes residentielles retenues`
+                : 'Aucune donnee disponible'}
             </p>
           </div>
 
-          <div className="choropleth-ranking">
-            <div className="section-heading">
-              <p className="eyebrow">Lecture rapide</p>
-              <h3>Départements les plus chers</h3>
-            </div>
-            <div className="choropleth-ranking__list">
-              {highestDepartments.map((department) => (
-                <button
-                  key={department.departmentCode}
-                  type="button"
-                  className="choropleth-ranking__item"
-                  onMouseEnter={() => setHoveredCode(department.departmentCode)}
-                  onMouseLeave={() => setHoveredCode(null)}
-                >
-                  <span className="choropleth-ranking__code">
-                    {department.departmentCode}
-                  </span>
-                  <span className="choropleth-ranking__body">
-                    <strong>
-                      {mainlandPrepared.find(
-                        (feature) => feature.code === department.departmentCode,
-                      )?.name ?? department.departmentCode}
-                    </strong>
-                    <small>
-                      {formatCurrencyPerSquareMeter(
-                        department.medianPricePerSquareMeter,
-                      )}
-                    </small>
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
           <p className="choropleth-footnote">
-            Carte métropolitaine et Corse. Le zoom Île-de-France améliore la lecture
-            des départements les plus compacts.
+            Carte metropolitaine et Corse. Les DVF n'incluent pas le Bas-Rhin, le
+            Haut-Rhin ni la Moselle, qui relevent du droit local du livre foncier.
           </p>
-        </aside>
+        </div>
       </div>
     </div>
   )

@@ -3,9 +3,9 @@ import { Layout } from './components/Layout'
 import { getObservatoryContent } from './services/realEstateContent'
 import { DataPipeline } from './pages/DataPipeline'
 import { DataExplorer } from './pages/DataExplorer'
-import { Explorer } from './pages/Explorer'
 import { Home } from './pages/Home'
 import { Methodology } from './pages/Methodology'
+import { Statistics } from './pages/Statistics'
 import type { PageDefinition, PageKey } from './types/realEstate'
 import './styles/app.css'
 
@@ -25,10 +25,12 @@ const PAGE_DEFINITIONS: Record<PageKey, PageDefinition> = {
       />
     ),
   },
-  explorer: {
-    key: 'explorer',
-    label: 'Explorer',
-    render: (): ReactElement => <Explorer content={observatoryContent.explorer} />,
+  statistics: {
+    key: 'statistics',
+    label: 'Statistiques',
+    render: (): ReactElement => (
+      <Statistics content={observatoryContent.statistics} />
+    ),
   },
   'data-explorer': {
     key: 'data-explorer',
@@ -63,10 +65,14 @@ const NAV_ITEMS = Object.values(PAGE_DEFINITIONS).map(({ key, label }) => ({
 }))
 
 const getPageFromHash = (hash: string): PageKey => {
-  const normalizedHash = hash.replace('#', '') as PageKey
+  const normalizedHash = hash.replace('#', '')
+
+  if (normalizedHash === 'explorer') {
+    return 'statistics'
+  }
 
   if (normalizedHash in PAGE_DEFINITIONS) {
-    return normalizedHash
+    return normalizedHash as PageKey
   }
 
   return 'home'

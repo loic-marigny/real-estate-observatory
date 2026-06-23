@@ -2,7 +2,7 @@ import type { ReactElement } from 'react'
 
 export type PageKey =
   | 'home'
-  | 'explorer'
+  | 'statistics'
   | 'data-explorer'
   | 'methodology'
   | 'pipeline'
@@ -53,14 +53,14 @@ export type HomePageContent = {
   sources: SourceReference[]
 }
 
-export type ExplorerSection = {
+export type StatisticsSection = {
   title: string
   description: string
 }
 
-export type ExplorerPageContent = {
+export type StatisticsPageContent = {
   hero: HeroBlock
-  sections: ExplorerSection[]
+  sections: StatisticsSection[]
 }
 
 export type MethodologySource = {
@@ -276,7 +276,7 @@ export type FilosofiQueryResult = {
 
 export type ObservatoryContent = {
   home: HomePageContent
-  explorer: ExplorerPageContent
+  statistics: StatisticsPageContent
   methodology: MethodologyPageContent
   pipeline: DataPipelinePageContent
 }

@@ -12,7 +12,7 @@ export const mockObservatoryContent: ObservatoryContent = {
       {
         id: 'median-price',
         label: 'Prix médian au m²',
-        value: '3 420 €',
+        value: '3 420 €/m²',
         trend: 'DVF local',
         description: 'Estimation de référence en attendant le chargement du résumé DVF.',
       },
@@ -56,10 +56,10 @@ export const mockObservatoryContent: ObservatoryContent = {
       { id: 'sdes-sitadel', label: 'SDES Sitadel' },
     ],
   },
-  explorer: {
+  statistics: {
     hero: {
-      eyebrow: 'Explorer',
-      title: 'Explorer le marché immobilier',
+      eyebrow: 'Statistiques',
+      title: 'Statistiques du marché immobilier',
       description:
         'Cette page accueillera les filtres géographiques, les comparaisons par territoire et les visualisations détaillées.',
     },

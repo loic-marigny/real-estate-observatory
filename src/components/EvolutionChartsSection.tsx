@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
-import { queryFilosofiTrend, FILOSOFI_TREND_INDICATORS } from '../services/filosofiDataService'
+import {
+  FILOSOFI_TREND_INDICATORS,
+  queryFilosofiTrend,
+} from '../services/filosofiDataService'
 import { queryDvfTrend } from '../services/dvfService'
 import type {
+  DvfTrendResult,
   FilosofiTrendIndicator,
   FilosofiTrendResult,
-  DvfTrendResult,
 } from '../types/realEstate'
 
 const formatCurrency = (value: number): string =>
@@ -28,8 +31,8 @@ const buildChartOptions = (
   visibleIndicators: Set<FilosofiTrendIndicator>,
 ) => {
   const years = trendResult.availableYears.map((year) => String(year))
-  const visibleSeries = trendResult.series.filter((s) =>
-    visibleIndicators.has(s.indicator),
+  const visibleSeries = trendResult.series.filter((series) =>
+    visibleIndicators.has(series.indicator),
   )
 
   return {
@@ -55,7 +58,7 @@ const buildChartOptions = (
         fontSize: 13,
         fontFamily: 'system-ui, -apple-system, sans-serif',
       },
-      data: visibleSeries.map((s) => s.label),
+      data: visibleSeries.map((series) => series.label),
     },
     grid: {
       left: '10%',
@@ -113,7 +116,7 @@ const buildDvfChartOptions = (dvfResult: DvfTrendResult) => {
       area: 'rgba(198, 96, 55, 0.1)',
     },
     {
-      name: 'Décile D9 (10% plus riches)',
+      name: 'Décile D9 (10% plus hauts)',
       field: 'd9PricePerSquareMeter' as const,
       color: 'rgba(57, 186, 116, 0.8)',
       area: 'rgba(57, 186, 116, 0.1)',
@@ -123,8 +126,8 @@ const buildDvfChartOptions = (dvfResult: DvfTrendResult) => {
   const series = seriesTemplates
     .map((template) => ({
       ...template,
-      values: dvfResult.points
-        .sort((a, b) => a.year - b.year)
+      values: [...dvfResult.points]
+        .sort((left, right) => left.year - right.year)
         .map((point) =>
           point[template.field] === null || point[template.field] === undefined
             ? null
@@ -228,21 +231,17 @@ export default function EvolutionChartsSection({
         }
 
         if (filosofiResult.status === 'fulfilled') {
-          console.log('FiLoSoFi trend loaded:', filosofiResult.value)
           setTrendResult(filosofiResult.value)
           setFilosofiLoadError(false)
         } else {
-          console.error('FiLoSoFi trend data error:', filosofiResult.reason)
           setTrendResult(null)
           setFilosofiLoadError(true)
         }
 
         if (dvfData.status === 'fulfilled') {
-          console.log('DVF trend loaded:', dvfData.value)
           setDvfResult(dvfData.value)
           setDvfLoadError(false)
         } else {
-          console.error('DVF trend data error:', dvfData.reason)
           setDvfResult(null)
           setDvfLoadError(true)
         }
@@ -259,13 +258,17 @@ export default function EvolutionChartsSection({
   }, [])
 
   const toggleIndicator = (indicator: FilosofiTrendIndicator) => {
-    const newVisible = new Set(visibleIndicators)
-    if (newVisible.has(indicator)) {
-      newVisible.delete(indicator)
-    } else {
-      newVisible.add(indicator)
-    }
-    setVisibleIndicators(newVisible)
+    setVisibleIndicators((currentIndicators) => {
+      const nextIndicators = new Set(currentIndicators)
+
+      if (nextIndicators.has(indicator)) {
+        nextIndicators.delete(indicator)
+      } else {
+        nextIndicators.add(indicator)
+      }
+
+      return nextIndicators
+    })
   }
 
   const filosofiChartOptions = useMemo(
@@ -324,7 +327,8 @@ export default function EvolutionChartsSection({
                 </div>
 
                 <p className="panel__footnote">
-                  Données disponibles pour les années : {trendResult.availableYears.join(', ')}.
+                  Données disponibles pour les années :{' '}
+                  {trendResult.availableYears.join(', ')}.
                 </p>
               </div>
             )}

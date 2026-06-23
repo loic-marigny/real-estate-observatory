@@ -1,10 +1,10 @@
-import type { ExplorerPageContent } from '../types/realEstate'
+import type { StatisticsPageContent } from '../types/realEstate'
 
-type ExplorerProps = {
-  content: ExplorerPageContent
+type StatisticsProps = {
+  content: StatisticsPageContent
 }
 
-export function Explorer({ content }: ExplorerProps) {
+export function Statistics({ content }: StatisticsProps) {
   return (
     <div className="page page--content">
       <section className="panel panel--hero">

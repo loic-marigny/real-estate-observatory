@@ -29,7 +29,7 @@ const formatInteger = (value: number): string =>
 const formatSurface = (value: number): string => `${formatInteger(value)} m²`
 
 const formatCurrencyPerSquareMeter = (value: number): string =>
-  `${formatInteger(value)} €`
+  `${formatInteger(value)} €/m²`
 
 const formatEuro = (value: number): string => `${formatInteger(value)} €`
 
