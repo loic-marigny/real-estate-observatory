@@ -114,7 +114,8 @@ export function DataTable({ columns, rows }: DataTableProps) {
           typeof leftValue === 'number' ? leftValue : Number(leftValue)
         const rightNumber =
           typeof rightValue === 'number' ? rightValue : Number(rightValue)
-        comparison = (Number.isFinite(leftNumber) ? leftNumber : -Infinity) -
+        comparison =
+          (Number.isFinite(leftNumber) ? leftNumber : -Infinity) -
           (Number.isFinite(rightNumber) ? rightNumber : -Infinity)
       } else {
         comparison = stringifyValue(leftValue).localeCompare(
@@ -189,10 +190,7 @@ export function DataTable({ columns, rows }: DataTableProps) {
     setSortDirection(direction)
   }
 
-  const updateFilter = (
-    columnKey: string,
-    nextFilter: Partial<ColumnFilter>,
-  ) => {
+  const updateFilter = (columnKey: string, nextFilter: Partial<ColumnFilter>) => {
     setPage(1)
     setColumnFilters((previous) => ({
       ...previous,
@@ -362,9 +360,7 @@ export function DataTable({ columns, rows }: DataTableProps) {
           <button
             type="button"
             className="data-table-footer__button"
-            onClick={() =>
-              setPage((current) => Math.min(totalPages, current + 1))
-            }
+            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
             disabled={safePage === totalPages}
           >
             Suivant

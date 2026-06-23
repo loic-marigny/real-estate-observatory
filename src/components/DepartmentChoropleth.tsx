@@ -307,7 +307,7 @@ export function DepartmentChoropleth({
     return (
       <div className="choropleth-card choropleth-card--empty">
         <p className="choropleth-card__status">
-          Le resume DVF est en cours de chargement pour alimenter la carte.
+          Le résumé DVF est en cours de chargement pour alimenter la carte.
         </p>
       </div>
     )
@@ -317,7 +317,7 @@ export function DepartmentChoropleth({
     return (
       <div className="choropleth-card choropleth-card--empty">
         <p className="choropleth-card__status">
-          Impossible de charger le fond de carte departemental.
+          Impossible de charger le fond de carte départemental.
         </p>
         <p className="choropleth-card__substatus">{mapError}</p>
       </div>
@@ -328,7 +328,7 @@ export function DepartmentChoropleth({
     return (
       <div className="choropleth-card choropleth-card--empty">
         <p className="choropleth-card__status">
-          Chargement du fond de carte departemental...
+          Chargement du fond de carte départemental...
         </p>
       </div>
     )
@@ -343,11 +343,11 @@ export function DepartmentChoropleth({
     return (
       <div className="choropleth-card choropleth-card--empty">
         <p className="choropleth-card__status">
-          Les donnees DVF chargees ne correspondent a aucun departement du fond de
+          Les données DVF chargées ne correspondent à aucun département du fond de
           carte.
         </p>
         <p className="choropleth-card__substatus">
-          Verifier les codes departement et le GeoJSON public.
+          Vérifier les codes département et le GeoJSON public.
         </p>
       </div>
     )
@@ -419,13 +419,13 @@ export function DepartmentChoropleth({
       <div className="choropleth-shell">
         <div className="choropleth-stage">
           <div className="choropleth-map-wrap">
-            <div className="choropleth-controls" aria-label="Controle du zoom">
+            <div className="choropleth-controls" aria-label="Contrôle du zoom">
               <button
                 type="button"
                 className="choropleth-controls__button"
                 onClick={handleZoomOut}
                 disabled={zoomLevel <= MIN_ZOOM}
-                aria-label="Zoomer en arriere"
+                aria-label="Zoomer en arrière"
               >
                 -
               </button>
@@ -452,7 +452,7 @@ export function DepartmentChoropleth({
               className="choropleth-map"
               viewBox={mapViewBox}
               role="img"
-              aria-label="Carte choroplethe des departements par prix median au metre carre"
+              aria-label="Carte choroplèthe des départements par prix médian au mètre carré"
             >
               {mainlandPrepared.map((feature) => (
                 <path
@@ -474,7 +474,7 @@ export function DepartmentChoropleth({
 
           <div className="choropleth-callout">
             <p className="choropleth-callout__eyebrow">
-              {hoveredCode ? 'Departement survole' : 'Repere'}
+              {hoveredCode ? 'Département survolé' : 'Repère'}
             </p>
             <h3>
               {focusFeature?.code ?? '--'} · {focusFeature?.name ?? 'France'}
@@ -486,14 +486,14 @@ export function DepartmentChoropleth({
             </p>
             <p className="choropleth-callout__meta">
               {focusDepartmentSummary
-                ? `${formatInteger(focusDepartmentSummary.salesCount)} ventes residentielles retenues`
-                : 'Aucune donnee disponible'}
+                ? `${formatInteger(focusDepartmentSummary.salesCount)} ventes résidentielles retenues`
+                : 'Aucune donnée disponible'}
             </p>
           </div>
 
           <p className="choropleth-footnote">
-            Carte metropolitaine et Corse. Les DVF n'incluent pas le Bas-Rhin, le
-            Haut-Rhin ni la Moselle, qui relevent du droit local du livre foncier.
+            Carte métropolitaine et Corse. Les DVF n'incluent pas le Bas-Rhin, le
+            Haut-Rhin ni la Moselle, qui relèvent du droit local du livre foncier.
           </p>
         </div>
       </div>

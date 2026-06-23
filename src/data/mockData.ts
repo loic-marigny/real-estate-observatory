@@ -14,28 +14,32 @@ export const mockObservatoryContent: ObservatoryContent = {
         label: 'Prix médian au m²',
         value: '3 420 €/m²',
         trend: 'DVF local',
-        description: 'Estimation de référence en attendant le chargement du résumé DVF.',
+        description:
+          'Estimation de référence en attendant le chargement du résumé DVF.',
       },
       {
         id: 'transactions',
         label: 'Ventes résidentielles',
         value: '842',
         trend: 'Échantillon',
-        description: 'Nombre de ventes utilisé comme valeur de repli côté interface.',
+        description:
+          'Nombre de ventes utilisé comme valeur de repli côté interface.',
       },
       {
         id: 'median-surface',
         label: 'Surface médiane',
         value: '71 m²',
         trend: 'DVF local',
-        description: 'Surface bâtie médiane sur les ventes résidentielles retenues.',
+        description:
+          'Surface bâtie médiane sur les ventes résidentielles retenues.',
       },
       {
         id: 'departments-covered',
         label: 'Départements couverts',
         value: '12',
         trend: 'Échantillon',
-        description: 'Nombre de départements présents dans le jeu de données chargé.',
+        description:
+          'Nombre de départements présents dans le jeu de données chargé.',
       },
     ],
     mapSection: {

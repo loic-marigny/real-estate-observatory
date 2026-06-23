@@ -3,6 +3,7 @@ import {
   datasetRegistryList,
   type BusinessDatasetId,
 } from '../data/datasetRegistry'
+import { formatPreviewLabel, normalizePreviewValue } from '../utils/text'
 
 export type DatasetColumn = {
   key: string
@@ -49,6 +50,13 @@ const asNumberArray = (value: unknown): number[] =>
 const normalizeColumnType = (value: unknown): 'text' | 'number' =>
   value === 'number' ? 'number' : 'text'
 
+const normalizeRecord = (
+  record: Record<string, unknown>,
+): Record<string, unknown> =>
+  Object.fromEntries(
+    Object.entries(record).map(([key, value]) => [key, normalizePreviewValue(value)]),
+  )
+
 const normalizePreviewPayload = (payload: unknown): DatasetPreviewResponse => {
   if (!payload || typeof payload !== 'object') {
     throw new Error('Invalid dataset preview payload')
@@ -81,7 +89,10 @@ const normalizePreviewPayload = (payload: unknown): DatasetPreviewResponse => {
           )
           .map((item) => ({
             key: typeof item.key === 'string' ? item.key : '',
-            label: typeof item.label === 'string' ? item.label : '',
+            label: formatPreviewLabel(
+              typeof item.key === 'string' ? item.key : '',
+              typeof item.label === 'string' ? item.label : '',
+            ),
             type: normalizeColumnType(item.type),
           }))
           .filter((item) => item.key !== '')
@@ -90,7 +101,7 @@ const normalizePreviewPayload = (payload: unknown): DatasetPreviewResponse => {
       ? record.records.filter(
           (item): item is Record<string, unknown> =>
             Boolean(item) && typeof item === 'object',
-        )
+        ).map(normalizeRecord)
       : [],
   }
 }

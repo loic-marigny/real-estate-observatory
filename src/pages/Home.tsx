@@ -87,7 +87,9 @@ export function Home({
 }: HomeProps) {
   const [displayMetrics, setDisplayMetrics] = useState<Metric[]>(metrics)
   const [dvfSummary, setDvfSummary] = useState<DvfSummary | null>(null)
-  const [filosofiSummary, setFilosofiSummary] = useState<FilosofiSummary | null>(null)
+  const [filosofiSummary, setFilosofiSummary] = useState<FilosofiSummary | null>(
+    null,
+  )
 
   useEffect(() => {
     let isMounted = true

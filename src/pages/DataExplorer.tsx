@@ -282,9 +282,16 @@ export function DataExplorer() {
     if (!selectedIndicator) {
       return RESULT_COLUMNS
     }
+
     return RESULT_COLUMNS.map((column) =>
       column.key === 'indicatorValue'
-        ? { ...column, label: indicatorOptions.find((option) => option.indicator === selectedIndicator)?.label ?? column.label }
+        ? {
+            ...column,
+            label:
+              indicatorOptions.find(
+                (option) => option.indicator === selectedIndicator,
+              )?.label ?? column.label,
+          }
         : column,
     )
   }, [indicatorOptions, selectedIndicator])
