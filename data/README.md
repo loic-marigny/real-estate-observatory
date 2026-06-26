@@ -226,6 +226,7 @@ Local repository files:
 - `public/data/dvf_summary.json`
 - `public/data/dvf_preview.json`
 - `public/data/filosofi_summary.json`
+- `public/data/filosofi_summaries.json`
 - `public/data/filosofi_preview.json`
 - `public/data/departements.geojson`
 

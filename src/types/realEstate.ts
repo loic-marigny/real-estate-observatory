@@ -130,6 +130,8 @@ export type FilosofiSummary = {
   generatedAt: string
   availableYears: number[]
   latestYear: number | null
+  dispositif?: string | null
+  departmentIndicatorSource?: string | null
   communesCovered: number
   departmentsCovered: number
   nationalMedianIncome: number | null
@@ -137,6 +139,14 @@ export type FilosofiSummary = {
   decileSummary: FilosofiDecileSummary | null
   povertyRateSummary: FilosofiPovertyRateSummary | null
   notes: string[]
+}
+
+export type FilosofiSummaryCollection = {
+  source: string
+  generatedAt: string
+  availableYears: number[]
+  latestYear: number | null
+  summariesByYear: Record<string, FilosofiSummary>
 }
 
 export type FilosofiTrendPoint = {

@@ -2,9 +2,11 @@ import type {
   FilosofiDecileSummary,
   FilosofiPovertyRateSummary,
   FilosofiSummary,
+  FilosofiSummaryCollection,
 } from '../types/realEstate'
 
 const FILOSOFI_SUMMARY_URL = '/data/filosofi_summary.json'
+const FILOSOFI_SUMMARIES_URL = '/data/filosofi_summaries.json'
 
 const asNumberOrNull = (value: unknown): number | null => {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -84,6 +86,15 @@ const normalizeFilosofiSummary = (data: unknown): FilosofiSummary => {
       typeof (record.latestYear ?? record.latest_year) === 'number'
         ? ((record.latestYear ?? record.latest_year) as number)
         : asNumberOrNull(record.latestYear ?? record.latest_year),
+    dispositif:
+      typeof record.dispositif === 'string' ? record.dispositif : null,
+    departmentIndicatorSource:
+      typeof (record.departmentIndicatorSource ?? record.department_indicator_source) ===
+      'string'
+        ? String(
+            record.departmentIndicatorSource ?? record.department_indicator_source,
+          )
+        : null,
     communesCovered:
       typeof (record.communesCovered ?? record.communes_covered) === 'number'
         ? ((record.communesCovered ?? record.communes_covered) as number)
@@ -112,7 +123,68 @@ const normalizeFilosofiSummary = (data: unknown): FilosofiSummary => {
   }
 }
 
+const normalizeFilosofiSummaryCollection = (
+  data: unknown,
+): FilosofiSummaryCollection => {
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid FiLoSoFi summary collection payload')
+  }
+
+  const record = data as Record<string, unknown>
+  const summariesByYearRecord =
+    record.summariesByYear ?? record.summaries_by_year
+
+  const summariesByYear =
+    summariesByYearRecord && typeof summariesByYearRecord === 'object'
+      ? Object.fromEntries(
+          Object.entries(summariesByYearRecord as Record<string, unknown>)
+            .map(([year, summary]) => [year, normalizeFilosofiSummary(summary)])
+            .filter(([year]) => Number.isFinite(Number(year))),
+        )
+      : {}
+
+  const availableYears = Array.isArray(record.availableYears ?? record.available_years)
+    ? ((record.availableYears ?? record.available_years) as unknown[])
+        .map((value) => (typeof value === 'number' ? value : Number(value)))
+        .filter((value) => Number.isFinite(value))
+    : Object.keys(summariesByYear)
+        .map((year) => Number(year))
+        .filter((year) => Number.isFinite(year))
+        .sort((left, right) => left - right)
+
+  const latestYear =
+    typeof (record.latestYear ?? record.latest_year) === 'number'
+      ? Number(record.latestYear ?? record.latest_year)
+      : asNumberOrNull(record.latestYear ?? record.latest_year)
+
+  return {
+    source: typeof record.source === 'string' ? record.source : 'INSEE FiLoSoFi',
+    generatedAt:
+      typeof (record.generatedAt ?? record.generated_at) === 'string'
+        ? String(record.generatedAt ?? record.generated_at)
+        : '',
+    availableYears,
+    latestYear:
+      latestYear ??
+      (availableYears.length > 0 ? availableYears[availableYears.length - 1] : null),
+    summariesByYear,
+  }
+}
+
 export async function getFilosofiSummary(): Promise<FilosofiSummary> {
+  const collection = await getFilosofiSummaries()
+  const latestYear =
+    collection.latestYear ??
+    collection.availableYears[collection.availableYears.length - 1] ??
+    null
+
+  if (latestYear !== null) {
+    const latestSummary = collection.summariesByYear[String(latestYear)]
+    if (latestSummary) {
+      return latestSummary
+    }
+  }
+
   const response = await fetch(FILOSOFI_SUMMARY_URL)
 
   if (!response.ok) {
@@ -121,4 +193,15 @@ export async function getFilosofiSummary(): Promise<FilosofiSummary> {
 
   const data = (await response.json()) as unknown
   return normalizeFilosofiSummary(data)
+}
+
+export async function getFilosofiSummaries(): Promise<FilosofiSummaryCollection> {
+  const response = await fetch(FILOSOFI_SUMMARIES_URL)
+
+  if (!response.ok) {
+    throw new Error(`Failed to load FiLoSoFi summaries: ${response.status}`)
+  }
+
+  const data = (await response.json()) as unknown
+  return normalizeFilosofiSummaryCollection(data)
 }

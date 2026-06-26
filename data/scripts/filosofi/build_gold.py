@@ -20,6 +20,7 @@ CANONICAL_MAPPING_PATH = ROOT_DIR / "config" / "filosofi_canonical_columns.json"
 REPORTS_DIR = ROOT_DIR / "reports"
 GOLD_ROOT = ROOT_DIR / "data" / "gold" / "filosofi"
 PUBLIC_SUMMARY_PATH = ROOT_DIR / "public" / "data" / "filosofi_summary.json"
+PUBLIC_SUMMARIES_PATH = ROOT_DIR / "public" / "data" / "filosofi_summaries.json"
 
 NUMERIC_COLUMNS = [
     "median_income",
@@ -109,6 +110,10 @@ def indicator_availability_path() -> Path:
 
 def metadata_path() -> Path:
     return GOLD_ROOT / "metadata.json"
+
+
+def summaries_index_path() -> Path:
+    return GOLD_ROOT / "summaries_by_year.json"
 
 
 def schema_report_path() -> Path:
@@ -445,6 +450,30 @@ def department_deciles_summary(department_frame: pd.DataFrame) -> dict[str, dict
     return dict(sorted(rows.items()))
 
 
+def compute_decile_summary(
+    commune_frame: pd.DataFrame,
+    department_frame: pd.DataFrame,
+) -> dict[str, float | None]:
+    commune_weight_column = choose_weight_column(commune_frame)
+    commune_weights = commune_frame[commune_weight_column] if commune_weight_column else None
+    department_weight_column = choose_weight_column(department_frame)
+    department_weights = (
+        department_frame[department_weight_column] if department_weight_column else None
+    )
+
+    summary: dict[str, float | None] = {}
+    for column in ["d1_income", "d5_income", "d9_income"]:
+        value: float | None = None
+        if column in commune_frame.columns and commune_frame[column].notna().any():
+            value = weighted_median(commune_frame[column], commune_weights)
+        elif column in department_frame.columns and department_frame[column].notna().any():
+            value = weighted_median(department_frame[column], department_weights)
+
+        summary[column] = round(float(value), 2) if value is not None else None
+
+    return summary
+
+
 def compute_year_summary(
     commune_frame: pd.DataFrame,
     department_frame: pd.DataFrame,
@@ -466,14 +495,7 @@ def compute_year_summary(
             "median": round(float(weighted_median(commune_frame["poverty_rate"], weights)), 2),
         }
 
-    decile_summary = {
-        column: (
-            round(float(weighted_median(commune_frame[column], weights)), 2)
-            if commune_frame[column].notna().any()
-            else None
-        )
-        for column in ["d1_income", "d5_income", "d9_income"]
-    }
+    decile_summary = compute_decile_summary(commune_frame, department_frame)
 
     return {
         "source": "INSEE FiLoSoFi",
@@ -687,7 +709,34 @@ def concat_or_empty(frames: list[pd.DataFrame]) -> pd.DataFrame:
     return finalize_frame(pd.concat(frames, ignore_index=True, sort=False))
 
 
-def write_multiyear_outputs() -> None:
+def load_year_summary(year: int) -> dict[str, object] | None:
+    path = year_summary_output_path(year)
+    if not path.exists():
+        return None
+    payload = read_json(path)
+    payload["available_years"] = [year]
+    payload["latest_year"] = year
+    return payload
+
+
+def build_summary_collection_payload(
+    year_summaries: dict[int, dict[str, object]],
+) -> dict[str, object]:
+    available_years = sorted(year_summaries)
+    latest_year = available_years[-1] if available_years else None
+    return {
+        "source": "INSEE FiLoSoFi",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "available_years": available_years,
+        "latest_year": latest_year,
+        "summaries_by_year": {
+            str(year): year_summaries[year]
+            for year in available_years
+        },
+    }
+
+
+def write_multiyear_outputs(publish_public: bool = False) -> None:
     commune_frames: list[pd.DataFrame] = []
     for year in configured_years():
         frame = safe_read_frame(year_commune_output_path(year))
@@ -725,6 +774,24 @@ def write_multiyear_outputs() -> None:
         derived_department_frames,
     )
     metadata_path().write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    year_summaries = {
+        year: payload
+        for year in configured_years()
+        for payload in [load_year_summary(year)]
+        if payload is not None
+    }
+    summaries_payload = build_summary_collection_payload(year_summaries)
+    summaries_index_path().write_text(
+        json.dumps(summaries_payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    if publish_public:
+        PUBLIC_SUMMARIES_PATH.parent.mkdir(parents=True, exist_ok=True)
+        PUBLIC_SUMMARIES_PATH.write_text(
+            json.dumps(summaries_payload, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
     write_schema_report()
 
 
@@ -779,7 +846,7 @@ def main() -> None:
         PUBLIC_SUMMARY_PATH.parent.mkdir(parents=True, exist_ok=True)
         PUBLIC_SUMMARY_PATH.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    write_multiyear_outputs()
+    write_multiyear_outputs(publish_public=args.publish_public)
 
     log(f"Commune indicators parquet written to {commune_output}")
     log(f"Department indicators parquet written to {department_output}")

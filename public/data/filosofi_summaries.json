@@ -1,0 +1,183 @@
+﻿{
+    "source":  "INSEE FiLoSoFi",
+    "generated_at":  "2026-06-26T13:46:40.1717547Z",
+    "available_years":  [
+                            2017,
+                            2018,
+                            2019,
+                            2020,
+                            2021,
+                            2023
+                        ],
+    "latest_year":  2023,
+    "summaries_by_year":  {
+                              "2017":  {
+                                           "source":  "INSEE FiLoSoFi",
+                                           "generated_at":  "2026-06-18T15:13:10.367774+00:00",
+                                           "available_years":  [
+                                                                   2017
+                                                               ],
+                                           "latest_year":  2017,
+                                           "dispositif":  "filosofi",
+                                           "department_indicator_source":  "official_insee",
+                                           "communes_covered":  34931,
+                                           "departments_covered":  98,
+                                           "national_median_income":  20730.0,
+                                           "decile_summary":  {
+                                                                  "d1_income":  10930.0,
+                                                                  "d5_income":  null,
+                                                                  "d9_income":  36520.0
+                                                              },
+                                           "poverty_rate_summary":  {
+                                                                        "mean":  16.75,
+                                                                        "median":  15.0
+                                                                    },
+                                           "notes":  [
+                                                         "FiLoSoFi is annual data and should be joined to DVF using commune_code and year.",
+                                                         "Columns with no published source value remain null in the harmonized gold layer.",
+                                                         "Department series are split between official INSEE outputs and derived commune aggregations.",
+                                                         "FiLoSoFi 2 starts in 2023 and introduces a methodological break."
+                                                     ]
+                                       },
+                              "2018":  {
+                                           "source":  "INSEE FiLoSoFi",
+                                           "generated_at":  "2026-06-18T15:13:13.954704+00:00",
+                                           "available_years":  [
+                                                                   2018
+                                                               ],
+                                           "latest_year":  2018,
+                                           "dispositif":  "filosofi",
+                                           "department_indicator_source":  "derived_from_communes",
+                                           "communes_covered":  31330,
+                                           "departments_covered":  98,
+                                           "national_median_income":  21390.0,
+                                           "decile_summary":  {
+                                                                  "d1_income":  11170.0,
+                                                                  "d5_income":  null,
+                                                                  "d9_income":  37400.0
+                                                              },
+                                           "poverty_rate_summary":  {
+                                                                        "mean":  17.02,
+                                                                        "median":  15.0
+                                                                    },
+                                           "notes":  [
+                                                         "FiLoSoFi is annual data and should be joined to DVF using commune_code and year.",
+                                                         "Columns with no published source value remain null in the harmonized gold layer.",
+                                                         "Department series are split between official INSEE outputs and derived commune aggregations.",
+                                                         "FiLoSoFi 2 starts in 2023 and introduces a methodological break."
+                                                     ]
+                                       },
+                              "2019":  {
+                                           "source":  "INSEE FiLoSoFi",
+                                           "generated_at":  "2026-06-18T15:13:17.291315+00:00",
+                                           "available_years":  [
+                                                                   2019
+                                                               ],
+                                           "latest_year":  2019,
+                                           "dispositif":  "filosofi",
+                                           "department_indicator_source":  "derived_from_communes",
+                                           "communes_covered":  31361,
+                                           "departments_covered":  98,
+                                           "national_median_income":  21590.0,
+                                           "decile_summary":  {
+                                                                  "d1_income":  11290.0,
+                                                                  "d5_income":  null,
+                                                                  "d9_income":  37570.0
+                                                              },
+                                           "poverty_rate_summary":  {
+                                                                        "mean":  16.8,
+                                                                        "median":  15.0
+                                                                    },
+                                           "notes":  [
+                                                         "FiLoSoFi is annual data and should be joined to DVF using commune_code and year.",
+                                                         "Columns with no published source value remain null in the harmonized gold layer.",
+                                                         "Department series are split between official INSEE outputs and derived commune aggregations.",
+                                                         "FiLoSoFi 2 starts in 2023 and introduces a methodological break."
+                                                     ]
+                                       },
+                              "2020":  {
+                                           "source":  "INSEE FiLoSoFi",
+                                           "generated_at":  "2026-06-18T15:13:20.739169+00:00",
+                                           "available_years":  [
+                                                                   2020
+                                                               ],
+                                           "latest_year":  2020,
+                                           "dispositif":  "filosofi",
+                                           "department_indicator_source":  "derived_from_communes",
+                                           "communes_covered":  34939,
+                                           "departments_covered":  98,
+                                           "national_median_income":  22000.0,
+                                           "decile_summary":  {
+                                                                  "d1_income":  11570.0,
+                                                                  "d5_income":  null,
+                                                                  "d9_income":  38070.0
+                                                              },
+                                           "poverty_rate_summary":  {
+                                                                        "mean":  16.67,
+                                                                        "median":  15.0
+                                                                    },
+                                           "notes":  [
+                                                         "FiLoSoFi is annual data and should be joined to DVF using commune_code and year.",
+                                                         "Columns with no published source value remain null in the harmonized gold layer.",
+                                                         "Department series are split between official INSEE outputs and derived commune aggregations.",
+                                                         "FiLoSoFi 2 starts in 2023 and introduces a methodological break."
+                                                     ]
+                                       },
+                              "2021":  {
+                                           "source":  "INSEE FiLoSoFi",
+                                           "generated_at":  "2026-06-18T15:13:24.162342+00:00",
+                                           "available_years":  [
+                                                                   2021
+                                                               ],
+                                           "latest_year":  2021,
+                                           "dispositif":  "filosofi",
+                                           "department_indicator_source":  "derived_from_communes",
+                                           "communes_covered":  34929,
+                                           "departments_covered":  98,
+                                           "national_median_income":  22750.0,
+                                           "decile_summary":  {
+                                                                  "d1_income":  11720.0,
+                                                                  "d5_income":  null,
+                                                                  "d9_income":  39280.0
+                                                              },
+                                           "poverty_rate_summary":  {
+                                                                        "mean":  17.41,
+                                                                        "median":  16.0
+                                                                    },
+                                           "notes":  [
+                                                         "FiLoSoFi is annual data and should be joined to DVF using commune_code and year.",
+                                                         "Columns with no published source value remain null in the harmonized gold layer.",
+                                                         "Department series are split between official INSEE outputs and derived commune aggregations.",
+                                                         "FiLoSoFi 2 starts in 2023 and introduces a methodological break."
+                                                     ]
+                                       },
+                              "2023":  {
+                                           "source":  "INSEE FiLoSoFi",
+                                           "generated_at":  "2026-06-18T15:13:26.387430+00:00",
+                                           "available_years":  [
+                                                                   2023
+                                                               ],
+                                           "latest_year":  2023,
+                                           "dispositif":  "filosofi2",
+                                           "department_indicator_source":  "official_insee",
+                                           "communes_covered":  34768,
+                                           "departments_covered":  97,
+                                           "national_median_income":  25780.0,
+                                           "decile_summary":  {
+                                                                  "d1_income":  13420,
+                                                                  "d5_income":  null,
+                                                                  "d9_income":  41490
+                                                              },
+                                           "poverty_rate_summary":  {
+                                                                        "mean":  17.53,
+                                                                        "median":  16.0
+                                                                    },
+                                           "notes":  [
+                                                         "FiLoSoFi is annual data and should be joined to DVF using commune_code and year.",
+                                                         "Columns with no published source value remain null in the harmonized gold layer.",
+                                                         "Department series are split between official INSEE outputs and derived commune aggregations.",
+                                                         "FiLoSoFi 2 starts in 2023 and introduces a methodological break."
+                                                     ]
+                                       }
+                          }
+}

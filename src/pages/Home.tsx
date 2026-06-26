@@ -1,12 +1,13 @@
 import { startTransition, useEffect, useState } from 'react'
 import { DepartmentChoropleth } from '../components/DepartmentChoropleth'
-import { MetricCard } from '../components/MetricCard'
 import EvolutionChartsSection from '../components/EvolutionChartsSection'
+import { MetricCard } from '../components/MetricCard'
 import { getDvfSummary } from '../services/dvfService'
-import { getFilosofiSummary } from '../services/filosofiService'
+import { getFilosofiSummaries } from '../services/filosofiService'
 import type {
   DvfSummary,
   FilosofiSummary,
+  FilosofiSummaryCollection,
   HomeHero,
   Metric,
   PlaceholderSection,
@@ -88,7 +89,9 @@ export function Home({
   const [dvfMetricsError, setDvfMetricsError] = useState<string | null>(null)
   const [isDvfMetricsLoading, setIsDvfMetricsLoading] = useState(true)
 
-  const [filosofiSummary, setFilosofiSummary] = useState<FilosofiSummary | null>(null)
+  const [filosofiSummaries, setFilosofiSummaries] =
+    useState<FilosofiSummaryCollection | null>(null)
+  const [selectedFilosofiYear, setSelectedFilosofiYear] = useState<number | null>(null)
   const [filosofiError, setFilosofiError] = useState<string | null>(null)
   const [isFilosofiLoading, setIsFilosofiLoading] = useState(true)
 
@@ -140,19 +143,25 @@ export function Home({
   useEffect(() => {
     let isMounted = true
 
-    const loadFilosofiSummary = async () => {
+    const loadFilosofiSummaries = async () => {
       setIsFilosofiLoading(true)
       setFilosofiError(null)
 
       try {
-        const summary = await getFilosofiSummary()
+        const summaries = await getFilosofiSummaries()
+        const availableYears = [...summaries.availableYears].sort((left, right) => left - right)
+        const latestYear =
+          summaries.latestYear ??
+          availableYears[availableYears.length - 1] ??
+          null
 
         if (!isMounted) {
           return
         }
 
         startTransition(() => {
-          setFilosofiSummary(summary)
+          setFilosofiSummaries(summaries)
+          setSelectedFilosofiYear(latestYear)
           setFilosofiError(null)
           setIsFilosofiLoading(false)
         })
@@ -162,23 +171,44 @@ export function Home({
         }
 
         startTransition(() => {
-          setFilosofiSummary(null)
+          setFilosofiSummaries(null)
+          setSelectedFilosofiYear(null)
           setFilosofiError(
             error instanceof Error
               ? error.message
-              : 'Impossible de charger le résumé FiLoSoFi.',
+              : 'Impossible de charger les résumés FiLoSoFi.',
           )
           setIsFilosofiLoading(false)
         })
       }
     }
 
-    void loadFilosofiSummary()
+    void loadFilosofiSummaries()
 
     return () => {
       isMounted = false
     }
   }, [])
+
+  const availableFilosofiYears = [...(filosofiSummaries?.availableYears ?? [])].sort(
+    (left, right) => left - right,
+  )
+  const selectedFilosofiYearIndex =
+    selectedFilosofiYear !== null
+      ? availableFilosofiYears.findIndex((year) => year === selectedFilosofiYear)
+      : -1
+  const selectedFilosofiSummary: FilosofiSummary | null =
+    selectedFilosofiYear !== null
+      ? (filosofiSummaries?.summariesByYear[String(selectedFilosofiYear)] ?? null)
+      : null
+
+  const handleFilosofiYearChange = (nextIndex: number) => {
+    const nextYear = availableFilosofiYears[nextIndex]
+    if (nextYear === undefined) {
+      return
+    }
+    setSelectedFilosofiYear(nextYear)
+  }
 
   return (
     <div className="page">
@@ -216,72 +246,98 @@ export function Home({
 
       {isFilosofiLoading ? (
         <section className="panel panel--compact">
-          <p className="panel__footnote">Chargement du résumé FiLoSoFi…</p>
+          <p className="panel__footnote">Chargement des résumés FiLoSoFi…</p>
         </section>
       ) : filosofiError ? (
         <section className="panel panel--compact">
-          <p className="panel__footnote">Impossible de charger le résumé FiLoSoFi.</p>
+          <p className="panel__footnote">Impossible de charger les résumés FiLoSoFi.</p>
           <p className="panel__footnote">{filosofiError}</p>
         </section>
-      ) : filosofiSummary ? (
+      ) : selectedFilosofiSummary ? (
         <section className="panel panel--compact" aria-labelledby="filosofi-title">
           <div className="section-heading">
             <p className="eyebrow">FiLoSoFi</p>
             <h2 id="filosofi-title">Revenus localisés</h2>
           </div>
+          {availableFilosofiYears.length > 0 ? (
+            <div className="filosofi-year-control">
+              <div className="filosofi-year-control__header">
+                <span className="filosofi-year-control__label">Année affichée</span>
+                <strong className="filosofi-year-control__value">
+                  {selectedFilosofiYear ?? 'N/A'}
+                </strong>
+              </div>
+              <input
+                className="filosofi-year-control__range"
+                type="range"
+                min={0}
+                max={Math.max(availableFilosofiYears.length - 1, 0)}
+                step={1}
+                value={Math.max(selectedFilosofiYearIndex, 0)}
+                onChange={(event) =>
+                  handleFilosofiYearChange(Number(event.currentTarget.value))
+                }
+                aria-label="Sélectionner l’année FiLoSoFi"
+              />
+              <div className="filosofi-year-control__ticks" aria-hidden="true">
+                {availableFilosofiYears.map((year) => (
+                  <span key={year}>{year}</span>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <div className="mini-stats-grid">
             <article className="mini-stat-card">
-              <span className="mini-stat-card__label">Dernier millésime</span>
+              <span className="mini-stat-card__label">Départements couverts</span>
               <strong className="mini-stat-card__value">
-                {filosofiSummary.latestYear ?? 'N/A'}
+                {formatInteger(selectedFilosofiSummary.departmentsCovered)}
               </strong>
             </article>
             <article className="mini-stat-card">
               <span className="mini-stat-card__label">Communes couvertes</span>
               <strong className="mini-stat-card__value">
-                {formatInteger(filosofiSummary.communesCovered)}
+                {formatInteger(selectedFilosofiSummary.communesCovered)}
               </strong>
             </article>
             <article className="mini-stat-card">
               <span className="mini-stat-card__label">Revenu médian national</span>
               <strong className="mini-stat-card__value">
-                {filosofiSummary.nationalMedianIncome !== null
-                  ? formatEuro(filosofiSummary.nationalMedianIncome)
+                {selectedFilosofiSummary.nationalMedianIncome !== null
+                  ? formatEuro(selectedFilosofiSummary.nationalMedianIncome)
                   : 'N/A'}
               </strong>
             </article>
             <article className="mini-stat-card">
-              <span className="mini-stat-card__label">Déciles D1 / D5 / D9</span>
+              <span className="mini-stat-card__label">Repères D1 / Médiane / D9</span>
               <strong className="mini-stat-card__value mini-stat-card__value--stacked">
                 <span>
                   D1{' '}
-                  {filosofiSummary.decileSummary?.d1Income !== null &&
-                  filosofiSummary.decileSummary?.d1Income !== undefined
-                    ? formatEuro(filosofiSummary.decileSummary.d1Income)
+                  {selectedFilosofiSummary.decileSummary?.d1Income !== null &&
+                  selectedFilosofiSummary.decileSummary?.d1Income !== undefined
+                    ? formatEuro(selectedFilosofiSummary.decileSummary.d1Income)
                     : 'N/A'}
                 </span>
                 <span>
-                  D5{' '}
-                  {filosofiSummary.decileSummary?.d5Income !== null &&
-                  filosofiSummary.decileSummary?.d5Income !== undefined
-                    ? formatEuro(filosofiSummary.decileSummary.d5Income)
+                  Médiane{' '}
+                  {selectedFilosofiSummary.nationalMedianIncome !== null
+                    ? formatEuro(selectedFilosofiSummary.nationalMedianIncome)
                     : 'N/A'}
                 </span>
                 <span>
                   D9{' '}
-                  {filosofiSummary.decileSummary?.d9Income !== null &&
-                  filosofiSummary.decileSummary?.d9Income !== undefined
-                    ? formatEuro(filosofiSummary.decileSummary.d9Income)
+                  {selectedFilosofiSummary.decileSummary?.d9Income !== null &&
+                  selectedFilosofiSummary.decileSummary?.d9Income !== undefined
+                    ? formatEuro(selectedFilosofiSummary.decileSummary.d9Income)
                     : 'N/A'}
                 </span>
               </strong>
             </article>
           </div>
-          {filosofiSummary.povertyRateSummary?.mean !== null &&
-          filosofiSummary.povertyRateSummary?.mean !== undefined ? (
+          {selectedFilosofiSummary.povertyRateSummary?.mean !== null &&
+          selectedFilosofiSummary.povertyRateSummary?.mean !== undefined ? (
             <p className="panel__footnote">
-              Taux de pauvreté moyen disponible pour le dernier millésime :{' '}
-              {formatPercentage(filosofiSummary.povertyRateSummary.mean)}.
+              Taux de pauvreté moyen disponible pour {selectedFilosofiYear} :{' '}
+              {formatPercentage(selectedFilosofiSummary.povertyRateSummary.mean)}.
             </p>
           ) : null}
         </section>
