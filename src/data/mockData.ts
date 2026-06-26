@@ -12,7 +12,7 @@ export const mockObservatoryContent: ObservatoryContent = {
       {
         id: 'median-price',
         label: 'Prix médian au m²',
-        value: '3 420 €/m²',
+        value: 'Erreur',
         trend: 'DVF local',
         description:
           'Estimation de référence en attendant le chargement du résumé DVF.',
@@ -20,7 +20,7 @@ export const mockObservatoryContent: ObservatoryContent = {
       {
         id: 'transactions',
         label: 'Ventes résidentielles',
-        value: '842',
+        value: 'Erreur',
         trend: 'Échantillon',
         description:
           'Nombre de ventes utilisé comme valeur de repli côté interface.',
@@ -28,7 +28,7 @@ export const mockObservatoryContent: ObservatoryContent = {
       {
         id: 'median-surface',
         label: 'Surface médiane',
-        value: '71 m²',
+        value: 'Erreur',
         trend: 'DVF local',
         description:
           'Surface bâtie médiane sur les ventes résidentielles retenues.',
@@ -36,7 +36,7 @@ export const mockObservatoryContent: ObservatoryContent = {
       {
         id: 'departments-covered',
         label: 'Départements couverts',
-        value: '12',
+        value: 'Erreur',
         trend: 'Échantillon',
         description:
           'Nombre de départements présents dans le jeu de données chargé.',

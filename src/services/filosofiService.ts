@@ -112,19 +112,13 @@ const normalizeFilosofiSummary = (data: unknown): FilosofiSummary => {
   }
 }
 
-export async function getFilosofiSummary(): Promise<FilosofiSummary | null> {
-  try {
-    const response = await fetch(FILOSOFI_SUMMARY_URL)
-    if (response.status === 404) {
-      return null
-    }
-    if (!response.ok) {
-      throw new Error(`Failed to load FiLoSoFi summary: ${response.status}`)
-    }
+export async function getFilosofiSummary(): Promise<FilosofiSummary> {
+  const response = await fetch(FILOSOFI_SUMMARY_URL)
 
-    const data = (await response.json()) as unknown
-    return normalizeFilosofiSummary(data)
-  } catch {
-    return null
+  if (!response.ok) {
+    throw new Error(`Failed to load FiLoSoFi summary: ${response.status}`)
   }
+
+  const data = (await response.json()) as unknown
+  return normalizeFilosofiSummary(data)
 }

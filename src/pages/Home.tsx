@@ -27,10 +27,8 @@ const formatInteger = (value: number): string =>
   }).format(value)
 
 const formatSurface = (value: number): string => `${formatInteger(value)} m²`
-
 const formatCurrencyPerSquareMeter = (value: number): string =>
   `${formatInteger(value)} €/m²`
-
 const formatEuro = (value: number): string => `${formatInteger(value)} €`
 
 const formatPercentage = (value: number): string =>
@@ -80,21 +78,27 @@ const buildMetricsFromDvfSummary = (summary: DvfSummary): Metric[] => [
 
 export function Home({
   hero,
-  metrics,
+  metrics: _unusedMetrics,
   mapSection,
   chartSection,
   sources,
 }: HomeProps) {
-  const [displayMetrics, setDisplayMetrics] = useState<Metric[]>(metrics)
+  const [displayMetrics, setDisplayMetrics] = useState<Metric[] | null>(null)
   const [dvfSummary, setDvfSummary] = useState<DvfSummary | null>(null)
-  const [filosofiSummary, setFilosofiSummary] = useState<FilosofiSummary | null>(
-    null,
-  )
+  const [dvfMetricsError, setDvfMetricsError] = useState<string | null>(null)
+  const [isDvfMetricsLoading, setIsDvfMetricsLoading] = useState(true)
+
+  const [filosofiSummary, setFilosofiSummary] = useState<FilosofiSummary | null>(null)
+  const [filosofiError, setFilosofiError] = useState<string | null>(null)
+  const [isFilosofiLoading, setIsFilosofiLoading] = useState(true)
 
   useEffect(() => {
     let isMounted = true
 
     const loadDvfSummary = async () => {
+      setIsDvfMetricsLoading(true)
+      setDvfMetricsError(null)
+
       try {
         const summary = await getDvfSummary()
 
@@ -105,14 +109,24 @@ export function Home({
         startTransition(() => {
           setDvfSummary(summary)
           setDisplayMetrics(buildMetricsFromDvfSummary(summary))
+          setDvfMetricsError(null)
+          setIsDvfMetricsLoading(false)
         })
-      } catch {
-        if (isMounted) {
-          startTransition(() => {
-            setDvfSummary(null)
-            setDisplayMetrics(metrics)
-          })
+      } catch (error) {
+        if (!isMounted) {
+          return
         }
+
+        startTransition(() => {
+          setDvfSummary(null)
+          setDisplayMetrics(null)
+          setDvfMetricsError(
+            error instanceof Error
+              ? error.message
+              : 'Impossible de charger le résumé DVF.',
+          )
+          setIsDvfMetricsLoading(false)
+        })
       }
     }
 
@@ -121,21 +135,42 @@ export function Home({
     return () => {
       isMounted = false
     }
-  }, [metrics])
+  }, [])
 
   useEffect(() => {
     let isMounted = true
 
     const loadFilosofiSummary = async () => {
-      const summary = await getFilosofiSummary()
+      setIsFilosofiLoading(true)
+      setFilosofiError(null)
 
-      if (!isMounted) {
-        return
+      try {
+        const summary = await getFilosofiSummary()
+
+        if (!isMounted) {
+          return
+        }
+
+        startTransition(() => {
+          setFilosofiSummary(summary)
+          setFilosofiError(null)
+          setIsFilosofiLoading(false)
+        })
+      } catch (error) {
+        if (!isMounted) {
+          return
+        }
+
+        startTransition(() => {
+          setFilosofiSummary(null)
+          setFilosofiError(
+            error instanceof Error
+              ? error.message
+              : 'Impossible de charger le résumé FiLoSoFi.',
+          )
+          setIsFilosofiLoading(false)
+        })
       }
-
-      startTransition(() => {
-        setFilosofiSummary(summary)
-      })
     }
 
     void loadFilosofiSummary()
@@ -161,14 +196,34 @@ export function Home({
           <h2 id="metrics-title">Vue d’ensemble</h2>
         </div>
 
-        <div className="metrics-grid">
-          {displayMetrics.map((metric) => (
-            <MetricCard key={metric.id} metric={metric} />
-          ))}
-        </div>
+        {isDvfMetricsLoading ? (
+          <div className="panel panel--compact">
+            <p className="panel__footnote">Chargement du résumé DVF…</p>
+          </div>
+        ) : dvfMetricsError ? (
+          <div className="panel panel--compact">
+            <p className="panel__footnote">Impossible de charger les métriques DVF.</p>
+            <p className="panel__footnote">{dvfMetricsError}</p>
+          </div>
+        ) : displayMetrics ? (
+          <div className="metrics-grid">
+            {displayMetrics.map((metric) => (
+              <MetricCard key={metric.id} metric={metric} />
+            ))}
+          </div>
+        ) : null}
       </section>
 
-      {filosofiSummary ? (
+      {isFilosofiLoading ? (
+        <section className="panel panel--compact">
+          <p className="panel__footnote">Chargement du résumé FiLoSoFi…</p>
+        </section>
+      ) : filosofiError ? (
+        <section className="panel panel--compact">
+          <p className="panel__footnote">Impossible de charger le résumé FiLoSoFi.</p>
+          <p className="panel__footnote">{filosofiError}</p>
+        </section>
+      ) : filosofiSummary ? (
         <section className="panel panel--compact" aria-labelledby="filosofi-title">
           <div className="section-heading">
             <p className="eyebrow">FiLoSoFi</p>
