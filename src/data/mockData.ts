@@ -45,7 +45,7 @@ export const mockObservatoryContent: ObservatoryContent = {
     mapSection: {
       eyebrow: 'Carte',
       title: 'Répartition territoriale',
-      description: 'Carte interactive France à intégrer',
+      description: 'Distribution géographique des prix',
     },
     chartSection: {
       eyebrow: 'Graphique',

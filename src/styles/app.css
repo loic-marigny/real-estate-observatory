@@ -276,25 +276,44 @@
   font-size: 0.95rem;
 }
 
-.evolution-indicators-selector {
+.evolution-control-panel {
   padding: 18px 20px;
   border: 1px solid var(--color-border);
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.88);
 }
 
-.evolution-indicators-selector--disabled {
-  background: rgba(255, 255, 255, 0.6);
-  border-color: transparent;
-  padding: 14px 16px;
-}
-
-.evolution-indicators-selector legend {
+.evolution-control-panel__title {
+  margin: 0 0 4px;
   font-size: 0.88rem;
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 12px;
-  padding: 0;
+}
+
+.evolution-indicators-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin-bottom: 10px;
+}
+
+.evolution-indicators-legend--standalone {
+  margin-bottom: 0;
+}
+
+.evolution-indicators-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-muted);
+  font-size: 0.88rem;
+}
+
+.evolution-indicators-legend__swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  flex: 0 0 auto;
 }
 
 .indicators-checkboxes {
@@ -744,10 +763,19 @@
     linear-gradient(180deg, rgba(246, 249, 251, 0.96), rgba(253, 247, 240, 0.98));
 }
 
+.choropleth-map-wrap--zoomed {
+  cursor: grab;
+}
+
+.choropleth-map-wrap--dragging {
+  cursor: grabbing;
+}
+
 .choropleth-map {
   width: 100%;
   height: auto;
   display: block;
+  touch-action: none;
 }
 
 .choropleth-controls {
@@ -813,6 +841,14 @@
     opacity 160ms ease,
     transform 160ms ease,
     stroke 160ms ease;
+}
+
+.choropleth-map-wrap--zoomed .choropleth-map__department {
+  cursor: grab;
+}
+
+.choropleth-map-wrap--dragging .choropleth-map__department {
+  cursor: grabbing;
 }
 
 .choropleth-map__department:hover,

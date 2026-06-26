@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { DvfDepartmentSummary } from '../types/realEstate'
 
 type GeoPoint = [number, number]
-
 type GeoPolygon = GeoPoint[]
 
 type DepartmentFeature = {
@@ -47,6 +46,14 @@ type MapCenter = {
   y: number
 }
 
+type DragState = {
+  pointerId: number
+  startClientX: number
+  startClientY: number
+  startCenter: MapCenter
+  moved: boolean
+}
+
 const MAP_URL = '/data/departements.geojson'
 const MAINLAND_WIDTH = 760
 const MAINLAND_HEIGHT = 660
@@ -62,6 +69,20 @@ const ZOOM_FACTOR = 1.35
 
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value))
+
+const getViewDimensions = (zoomLevel: number) => ({
+  width: MAINLAND_WIDTH / zoomLevel,
+  height: MAINLAND_HEIGHT / zoomLevel,
+})
+
+const clampCenter = (center: MapCenter, zoomLevel: number): MapCenter => {
+  const { width, height } = getViewDimensions(zoomLevel)
+
+  return {
+    x: clamp(center.x, width / 2, MAINLAND_WIDTH - width / 2),
+    y: clamp(center.y, height / 2, MAINLAND_HEIGHT - height / 2),
+  }
+}
 
 const formatInteger = (value: number): string =>
   new Intl.NumberFormat('fr-FR', {
@@ -257,23 +278,28 @@ const getFocusDepartment = (
 }
 
 const buildViewBox = (center: MapCenter, zoomLevel: number): string => {
-  const viewWidth = MAINLAND_WIDTH / zoomLevel
-  const viewHeight = MAINLAND_HEIGHT / zoomLevel
-  const x = clamp(center.x - viewWidth / 2, 0, MAINLAND_WIDTH - viewWidth)
-  const y = clamp(center.y - viewHeight / 2, 0, MAINLAND_HEIGHT - viewHeight)
+  const clampedCenter = clampCenter(center, zoomLevel)
+  const { width, height } = getViewDimensions(zoomLevel)
+  const x = clampedCenter.x - width / 2
+  const y = clampedCenter.y - height / 2
 
-  return `${x} ${y} ${viewWidth} ${viewHeight}`
+  return `${x} ${y} ${width} ${height}`
 }
 
 export function DepartmentChoropleth({
   departments,
 }: DepartmentChoroplethProps) {
+  const mapWrapRef = useRef<HTMLDivElement | null>(null)
   const [featureCollection, setFeatureCollection] =
     useState<DepartmentFeatureCollection | null>(null)
   const [hoveredCode, setHoveredCode] = useState<string | null>(null)
   const [mapError, setMapError] = useState<string | null>(null)
   const [zoomLevel, setZoomLevel] = useState<number>(MIN_ZOOM)
   const [mapCenter, setMapCenter] = useState<MapCenter>(DEFAULT_CENTER)
+  const [isDragging, setIsDragging] = useState(false)
+  const svgRef = useRef<SVGSVGElement | null>(null)
+  const dragStateRef = useRef<DragState | null>(null)
+  const suppressClickRef = useRef(false)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -302,6 +328,28 @@ export function DepartmentChoropleth({
       controller.abort()
     }
   }, [])
+
+  useEffect(() => {
+    const mapWrap = mapWrapRef.current
+    const svg = svgRef.current
+    if (!mapWrap || !svg) {
+      return
+    }
+
+    const handleNativeWheel = (event: WheelEvent) => {
+      event.preventDefault()
+    }
+
+    const options: AddEventListenerOptions = { passive: false, capture: true }
+
+    mapWrap.addEventListener('wheel', handleNativeWheel, options)
+    svg.addEventListener('wheel', handleNativeWheel, options)
+
+    return () => {
+      mapWrap.removeEventListener('wheel', handleNativeWheel, options)
+      svg.removeEventListener('wheel', handleNativeWheel, options)
+    }
+  }, [featureCollection])
 
   if (!departments.length) {
     return (
@@ -396,6 +444,8 @@ export function DepartmentChoropleth({
       const nextZoom = clamp(current / ZOOM_FACTOR, MIN_ZOOM, MAX_ZOOM)
       if (nextZoom === MIN_ZOOM) {
         setMapCenter(DEFAULT_CENTER)
+      } else {
+        setMapCenter((currentCenter) => clampCenter(currentCenter, nextZoom))
       }
       return nextZoom
     })
@@ -406,10 +456,120 @@ export function DepartmentChoropleth({
     setMapCenter(DEFAULT_CENTER)
   }
 
+  const handleWheel = (event: React.WheelEvent<SVGSVGElement>) => {
+    event.preventDefault()
+
+    if (!svgRef.current) {
+      return
+    }
+
+    const rect = svgRef.current.getBoundingClientRect()
+    if (rect.width <= 0 || rect.height <= 0) {
+      return
+    }
+
+    const zoomDirection = event.deltaY < 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR
+    const nextZoom = clamp(zoomLevel * zoomDirection, MIN_ZOOM, MAX_ZOOM)
+
+    if (nextZoom === zoomLevel) {
+      return
+    }
+
+    const pointerRatioX = clamp((event.clientX - rect.left) / rect.width, 0, 1)
+    const pointerRatioY = clamp((event.clientY - rect.top) / rect.height, 0, 1)
+    const { width: currentViewWidth, height: currentViewHeight } =
+      getViewDimensions(zoomLevel)
+    const currentCenter = clampCenter(mapCenter, zoomLevel)
+    const currentLeft = currentCenter.x - currentViewWidth / 2
+    const currentTop = currentCenter.y - currentViewHeight / 2
+    const anchorX = currentLeft + pointerRatioX * currentViewWidth
+    const anchorY = currentTop + pointerRatioY * currentViewHeight
+    const { width: nextViewWidth, height: nextViewHeight } = getViewDimensions(nextZoom)
+
+    const nextCenter = clampCenter(
+      {
+        x: anchorX - pointerRatioX * nextViewWidth + nextViewWidth / 2,
+        y: anchorY - pointerRatioY * nextViewHeight + nextViewHeight / 2,
+      },
+      nextZoom,
+    )
+
+    setZoomLevel(nextZoom)
+    setMapCenter(nextCenter)
+  }
+
   const handleDepartmentClick = (feature: PreparedFeature) => {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false
+      return
+    }
+
     setHoveredCode(feature.code)
     setMapCenter(feature.centroid)
     setZoomLevel((current) => clamp(Math.max(current, ZOOM_FACTOR * 1.2), MIN_ZOOM, MAX_ZOOM))
+  }
+
+  const handlePointerDown = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (zoomLevel <= MIN_ZOOM) {
+      return
+    }
+
+    dragStateRef.current = {
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startCenter: mapCenter,
+      moved: false,
+    }
+    suppressClickRef.current = false
+    setIsDragging(true)
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  const handlePointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
+    const dragState = dragStateRef.current
+    if (!dragState || dragState.pointerId !== event.pointerId || !svgRef.current) {
+      return
+    }
+
+    const rect = svgRef.current.getBoundingClientRect()
+    if (rect.width <= 0 || rect.height <= 0) {
+      return
+    }
+
+    const deltaX = event.clientX - dragState.startClientX
+    const deltaY = event.clientY - dragState.startClientY
+
+    if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+      dragState.moved = true
+    }
+
+    const { width: viewWidth, height: viewHeight } = getViewDimensions(zoomLevel)
+    const centerX =
+      dragState.startCenter.x - (deltaX / rect.width) * viewWidth
+    const centerY =
+      dragState.startCenter.y - (deltaY / rect.height) * viewHeight
+
+    setMapCenter(clampCenter({ x: centerX, y: centerY }, zoomLevel))
+  }
+
+  const endDrag = (pointerId: number) => {
+    const dragState = dragStateRef.current
+    if (!dragState || dragState.pointerId !== pointerId) {
+      return
+    }
+
+    suppressClickRef.current = dragState.moved
+    dragStateRef.current = null
+    setIsDragging(false)
+  }
+
+  const handlePointerUp = (event: React.PointerEvent<SVGSVGElement>) => {
+    endDrag(event.pointerId)
+  }
+
+  const handlePointerCancel = (event: React.PointerEvent<SVGSVGElement>) => {
+    endDrag(event.pointerId)
   }
 
   const mapViewBox = buildViewBox(mapCenter, zoomLevel)
@@ -418,7 +578,13 @@ export function DepartmentChoropleth({
     <div className="choropleth-card">
       <div className="choropleth-shell">
         <div className="choropleth-stage">
-          <div className="choropleth-map-wrap">
+          <div
+            ref={mapWrapRef}
+            className={`choropleth-map-wrap${
+              zoomLevel > MIN_ZOOM ? ' choropleth-map-wrap--zoomed' : ''
+            }${isDragging ? ' choropleth-map-wrap--dragging' : ''}`}
+            onWheelCapture={(event) => event.preventDefault()}
+          >
             <div className="choropleth-controls" aria-label="Contrôle du zoom">
               <button
                 type="button"
@@ -449,10 +615,17 @@ export function DepartmentChoropleth({
             </div>
 
             <svg
+              ref={svgRef}
               className="choropleth-map"
               viewBox={mapViewBox}
               role="img"
               aria-label="Carte choroplèthe des départements par prix médian au mètre carré"
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerCancel}
+              onWheel={handleWheel}
+              onWheelCapture={(event) => event.preventDefault()}
             >
               {mainlandPrepared.map((feature) => (
                 <path
