@@ -91,7 +91,12 @@ def try_download_from_r2(year: int) -> Path | None:
             client.head_object(Bucket=bucket_name, Key=remote_key)
         except ClientError as error:
             error_code = error.response.get("Error", {}).get("Code", "")
-            if error_code in {"404", "NoSuchKey", "NotFound"}:
+            if error_code in {"403", "404", "AccessDenied", "NoSuchKey", "NotFound"}:
+                if error_code in {"403", "AccessDenied"}:
+                    log(
+                        "Skipping R2 raw lookup because access is denied for "
+                        f"s3://{bucket_name}/{remote_key}"
+                    )
                 continue
             raise
 

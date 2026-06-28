@@ -69,6 +69,23 @@ class DvfDownloadTests(unittest.TestCase):
                 str(downloaded_path),
             )
 
+    def test_try_download_from_r2_ignores_access_denied_and_falls_back(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            raw_root = Path(temp_dir)
+            mock_client = mock.Mock()
+            mock_client.head_object.side_effect = lambda **kwargs: (_ for _ in ()).throw(
+                ClientError({"Error": {"Code": "403", "Message": "Forbidden"}}, "HeadObject")
+            )
+
+            with (
+                mock.patch("data.scripts.dvf.sources.RAW_DATA_DIR", raw_root),
+                mock.patch("data.scripts.dvf.download.create_s3_client", return_value=(mock_client, "bucket")),
+            ):
+                downloaded_path = download.try_download_from_r2(2017)
+
+            self.assertIsNone(downloaded_path)
+            mock_client.download_file.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()
