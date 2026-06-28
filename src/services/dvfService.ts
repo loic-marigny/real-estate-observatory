@@ -3,7 +3,7 @@ import { duckdbClient } from './duckdbClient'
 import { dvfAssetUrls } from './dataAssetConfig'
 
 const DVF_SUMMARY_URL = '/data/dvf_summary.json'
-const DEFAULT_DVF_YEARS = [2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024]
+const DEFAULT_DVF_YEARS = [2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024]
 let dvfSummaryPromise: Promise<DvfSummary> | null = null
 
 const asNumberOrNull = (value: unknown): number | null => {

@@ -15,7 +15,7 @@ class PublicPreviewTests(unittest.TestCase):
         with mock.patch.object(
             build_public_previews,
             "load_pipeline_config",
-            return_value={"dvf_years": [2017, 2018, 2019, 2020]},
+            return_value={"dvf_years": [2014, 2015, 2016, 2017, 2018, 2019, 2020]},
         ):
             years = build_public_previews.resolve_available_years(
                 "dvf",
@@ -24,7 +24,7 @@ class PublicPreviewTests(unittest.TestCase):
                 2024,
             )
 
-        self.assertEqual(years, [2017, 2018, 2019, 2020])
+        self.assertEqual(years, [2014, 2015, 2016, 2017, 2018, 2019, 2020])
 
     def test_non_dvf_preview_falls_back_to_years_in_frame(self) -> None:
         frame = pd.DataFrame({"year": [2023, 2021, 2023], "value": [1, 2, 3]})

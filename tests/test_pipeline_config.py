@@ -36,7 +36,7 @@ class PipelineConfigTests(unittest.TestCase):
 
     def test_pipeline_config_now_only_returns_dvf_years(self) -> None:
         config = load_pipeline_config()
-        self.assertEqual(config["dvf_years"], [2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024])
+        self.assertEqual(config["dvf_years"], [2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024])
         self.assertNotIn("filosofi_years", config)
 
     def test_valid_filosofi_catalog(self) -> None:
