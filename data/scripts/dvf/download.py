@@ -7,15 +7,16 @@ from urllib.parse import urljoin
 
 import requests
 
-
-DOWNLOAD_URL = "https://files.data.gouv.fr/geo-dvf/latest/csv/"
-OUTPUT_FILENAME = "full.csv.gz"
+from data.scripts.dvf.sources import (
+    GEO_DVF_DOWNLOAD_URL,
+    get_dvf_source,
+    raw_output_path,
+    resolve_existing_raw_path,
+)
 CHUNK_SIZE = 1024 * 1024
 REQUEST_TIMEOUT = 120
 MAX_DOWNLOAD_ATTEMPTS = 3
 
-ROOT_DIR = Path(__file__).resolve().parents[3]
-RAW_DATA_DIR = ROOT_DIR / "data" / "raw" / "dvf"
 YEAR_LINK_PATTERN = re.compile(r'href="[^"]*/(?P<year>\d{4})/"')
 
 
@@ -30,15 +31,22 @@ def parse_args() -> argparse.Namespace:
 
 
 def resolve_available_years(session: requests.Session) -> list[int]:
-    response = session.get(DOWNLOAD_URL, timeout=REQUEST_TIMEOUT)
+    response = session.get(GEO_DVF_DOWNLOAD_URL, timeout=REQUEST_TIMEOUT)
     response.raise_for_status()
     return sorted({int(match.group("year")) for match in YEAR_LINK_PATTERN.finditer(response.text)})
 
 
 def resolve_download_url(session: requests.Session, year: int | None) -> tuple[int, str]:
+    if year is not None:
+        source = get_dvf_source(year)
+        if source.download_url is not None:
+            log(f"Resolved DVF year: {year}")
+            log(f"Resolved archive URL: {source.download_url}")
+            return year, source.download_url
+
     available_years = resolve_available_years(session)
     if not available_years:
-        raise RuntimeError(f"No yearly DVF directories found at {DOWNLOAD_URL}")
+        raise RuntimeError(f"No yearly DVF directories found at {GEO_DVF_DOWNLOAD_URL}")
 
     selected_year = year if year is not None else available_years[-1]
     if selected_year not in available_years:
@@ -46,14 +54,18 @@ def resolve_download_url(session: requests.Session, year: int | None) -> tuple[i
             f"DVF year {selected_year} is not available. Available years: {available_years}"
         )
 
-    resolved_url = urljoin(DOWNLOAD_URL, f"{selected_year}/full.csv.gz")
+    resolved_url = urljoin(GEO_DVF_DOWNLOAD_URL, f"{selected_year}/full.csv.gz")
     log(f"Resolved DVF year: {selected_year}")
     log(f"Resolved archive URL: {resolved_url}")
     return selected_year, resolved_url
 
 
 def build_output_path(year: int) -> Path:
-    return RAW_DATA_DIR / f"year={year}" / OUTPUT_FILENAME
+    return raw_output_path(year)
+
+
+def can_reuse_local_archive(year: int | None) -> bool:
+    return year is not None and resolve_existing_raw_path(year) is not None
 
 
 def stream_download(session: requests.Session, download_url: str, temp_output_path: Path) -> None:
@@ -96,20 +108,30 @@ def main() -> None:
     args = parse_args()
     log("Preparing DVF raw data download")
 
+    if can_reuse_local_archive(args.year):
+        output_path = resolve_existing_raw_path(args.year)
+        log(f"Skipping download, file already exists: {output_path}")
+        return
+
     with requests.Session() as session:
         year, download_url = resolve_download_url(session, args.year)
         output_path = build_output_path(year)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         log(f"Raw data directory ready: {output_path.parent}")
 
-        if output_path.exists():
-            log(f"Skipping download, file already exists: {output_path}")
-            return
-
         temp_output_path = output_path.with_suffix(f"{output_path.suffix}.part")
         log(f"Starting download from: {download_url}")
         log(f"Saving archive to: {output_path}")
-        stream_download(session, download_url, temp_output_path)
+        try:
+            stream_download(session, download_url, temp_output_path)
+        except requests.HTTPError as error:
+            source = get_dvf_source(year)
+            if source.source_kind == "legacy_dgfip_raw":
+                raise RuntimeError(
+                    f"Legacy DVF resource for year {year} is not reachable at {download_url}. "
+                    f"Place the official raw file manually in {output_path.parent} and rerun the pipeline."
+                ) from error
+            raise
         temp_output_path.replace(output_path)
         log(f"Download completed: {output_path}")
 

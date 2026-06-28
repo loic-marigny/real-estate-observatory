@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from scripts.shared.pipeline_config import load_pipeline_config
+
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
 
@@ -44,6 +46,10 @@ def gold_dir(year: int) -> Path:
 
 def public_summary_path() -> Path:
     return ROOT_DIR / "public" / "data" / "dvf_summary.json"
+
+
+def configured_dvf_years() -> list[int]:
+    return load_pipeline_config().get("dvf_years", [])
 
 
 def compute_median(series: pd.Series) -> float | None:
@@ -170,6 +176,7 @@ def main() -> None:
 
     summary = {
         "year": args.year,
+        "available_years": configured_dvf_years(),
         "generated_at": generated_at,
         "source_file": source_file,
         "filters": FILTERS,

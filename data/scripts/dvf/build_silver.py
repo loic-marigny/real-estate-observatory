@@ -24,6 +24,13 @@ NUMERIC_COLUMNS = [
     "longitude",
     "latitude",
 ]
+REQUIRED_TEXT_COLUMNS = [
+    "nature_mutation",
+    "type_local",
+    "code_departement",
+    "code_commune",
+    "nom_commune",
+]
 
 
 def log(message: str) -> None:
@@ -44,6 +51,20 @@ def output_parquet_path(year: int) -> Path:
     return ROOT_DIR / "data" / "silver" / "dvf" / f"year={year}" / "dvf_silver.parquet"
 
 
+def normalize_numeric_series(series: pd.Series) -> pd.Series:
+    if series.dtype != object and not isinstance(series.dtype, pd.StringDtype):
+        return pd.to_numeric(series, errors="coerce").astype("float64")
+
+    cleaned = (
+        series.fillna("")
+        .astype(str)
+        .str.replace("\u00a0", "", regex=False)
+        .str.replace(" ", "", regex=False)
+        .str.replace(",", ".", regex=False)
+    )
+    return pd.to_numeric(cleaned, errors="coerce").astype("float64")
+
+
 def transform_chunk(chunk: pd.DataFrame, year: int) -> tuple[pd.DataFrame, dict[str, int]]:
     stats = {
         "rows_read": len(chunk),
@@ -55,6 +76,15 @@ def transform_chunk(chunk: pd.DataFrame, year: int) -> tuple[pd.DataFrame, dict[
 
     filtered = chunk.copy()
     filtered["year"] = year
+
+    for column in REQUIRED_TEXT_COLUMNS:
+        if column not in filtered.columns:
+            filtered[column] = ""
+
+    for column in NUMERIC_COLUMNS:
+        if column not in filtered.columns:
+            filtered[column] = pd.NA
+
     filtered = filtered[filtered["nature_mutation"].fillna("").str.strip() == "Vente"]
     stats["filtered_non_sales"] = stats["rows_read"] - len(filtered)
 
@@ -63,7 +93,7 @@ def transform_chunk(chunk: pd.DataFrame, year: int) -> tuple[pd.DataFrame, dict[
     stats["filtered_non_residential"] = before_property_filter - len(filtered)
 
     for column in NUMERIC_COLUMNS:
-        filtered[column] = pd.to_numeric(filtered[column], errors="coerce").astype("float64")
+        filtered[column] = normalize_numeric_series(filtered[column])
 
     before_invalid_filter = len(filtered)
     filtered = filtered[

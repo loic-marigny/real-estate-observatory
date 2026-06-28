@@ -3,6 +3,8 @@ import { duckdbClient } from './duckdbClient'
 import { dvfAssetUrls } from './dataAssetConfig'
 
 const DVF_SUMMARY_URL = '/data/dvf_summary.json'
+const DEFAULT_DVF_YEARS = [2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024]
+let dvfSummaryPromise: Promise<DvfSummary> | null = null
 
 const asNumberOrNull = (value: unknown): number | null => {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -88,6 +90,11 @@ const normalizeDvfSummary = (data: unknown): DvfSummary => {
   ).sort()
 
   return {
+    availableYears: Array.isArray(record.availableYears ?? record.available_years)
+      ? ((record.availableYears ?? record.available_years) as unknown[])
+          .map((value) => (typeof value === 'number' ? value : Number(value)))
+          .filter((value) => Number.isFinite(value))
+      : undefined,
     generatedAt:
       typeof (record.generatedAt ?? record.generated_at) === 'string'
         ? ((record.generatedAt ?? record.generated_at) as string)
@@ -129,7 +136,7 @@ const normalizeDvfSummary = (data: unknown): DvfSummary => {
   }
 }
 
-export async function getDvfSummary(): Promise<DvfSummary> {
+async function fetchDvfSummary(): Promise<DvfSummary> {
   const response = await fetch(DVF_SUMMARY_URL)
 
   if (!response.ok) {
@@ -140,12 +147,19 @@ export async function getDvfSummary(): Promise<DvfSummary> {
   return normalizeDvfSummary(data)
 }
 
+export async function getDvfSummary(): Promise<DvfSummary> {
+  if (!dvfSummaryPromise) {
+    dvfSummaryPromise = fetchDvfSummary().catch((error) => {
+      dvfSummaryPromise = null
+      throw error
+    })
+  }
+
+  return dvfSummaryPromise
+}
+
 const escapeSqlStringLiteral = (value: string): string =>
   `'${value.replaceAll("'", "''")}'`
-
-// List of years to try loading
-// These years have data available on R2
-const DVF_YEARS = [2021, 2022, 2023, 2024]
 
 const getDvfNationalParquetUrl = (year: number): string =>
   dvfAssetUrls.yearParquet(year)
@@ -203,8 +217,14 @@ async function loadDvfYearData(year: number): Promise<Array<Record<string, unkno
 }
 
 export async function queryDvfTrend(): Promise<DvfTrendResult> {
+  const summary = await getDvfSummary().catch(() => null)
+  const dvfYears =
+    summary?.availableYears && summary.availableYears.length > 0
+      ? summary.availableYears
+      : DEFAULT_DVF_YEARS
+
   // Load all years in parallel
-  const yearResults = await Promise.all(DVF_YEARS.map((year) => loadDvfYearData(year)))
+  const yearResults = await Promise.all(dvfYears.map((year) => loadDvfYearData(year)))
 
   const allRows: Array<Record<string, unknown>> = []
   for (const rows of yearResults) {

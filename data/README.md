@@ -42,7 +42,12 @@ Defines only the DVF years to process.
 
 Current configured values:
 
-- DVF: `2020`, `2021`, `2022`, `2023`, `2024`
+- DVF: `2017`, `2018`, `2019`, `2020`, `2021`, `2022`, `2023`, `2024`
+
+Note:
+
+- the current `geo-dvf/latest/csv/` endpoint may expose only the most recent DVF years
+- older configured years can still be processed if their `data/raw/dvf/year=YYYY/full.csv.gz` archive is already present locally
 
 ### `config/filosofi_sources.json`
 
@@ -118,7 +123,9 @@ python -m scripts.storage.r2_upload --local data/gold/filosofi --remote-prefix g
 Each processed DVF year produces:
 
 ```text
-data/raw/dvf/year=YYYY/full.csv.gz
+data/raw/dvf/year=YYYY/full.csv.gz          # Geo-DVF 2021+
+data/raw/dvf/year=YYYY/dvf_raw.txt         # legacy DGFiP raw 2017-2020
+data/raw/dvf/year=YYYY/YYYY-full.csv.zip   # supported legacy or normalized ZIP archive
 data/bronze/dvf/year=YYYY/dvf_bronze.parquet
 data/silver/dvf/year=YYYY/dvf_silver.parquet
 data/gold/dvf/year=YYYY/dvf_national.parquet
@@ -133,6 +140,13 @@ The workflows also publish:
 - `public/data/dvf_preview.json`
 
 These JSON files are generated locally and committed under `public/data/` so they can be served by the static frontend build. They are not uploaded to R2.
+
+For DVF specifically:
+
+- `2017-2020` must be ingested from the legacy DGFiP raw exports
+- `2021+` use the normalized Geo-DVF `full.csv.gz` archives
+- ZIP, gzip and plain-text raw DVF inputs are accepted
+- the bronze step auto-detects the delimiter and normalizes all source families to the same internal schema before silver and gold processing
 
 ## FiLoSoFi outputs
 

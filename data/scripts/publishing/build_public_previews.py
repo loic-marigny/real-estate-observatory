@@ -8,6 +8,9 @@ from pathlib import Path
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
 
+from data.scripts.dvf.sources import relative_raw_location
+from scripts.shared.pipeline_config import load_pipeline_config
+
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
 PUBLIC_DATA_DIR = ROOT_DIR / "public" / "data"
@@ -17,7 +20,7 @@ DATASETS = {
     "dvf": {
         "source_path_template": ROOT_DIR / "data" / "silver" / "dvf" / "year={year}" / "dvf_silver.parquet",
         "output_path": PUBLIC_DATA_DIR / "dvf_preview.json",
-        "source_file_location_template": "data/raw/dvf/year={year}/full.csv.gz",
+        "source_file_location_template": None,
         "year_column": "year",
     },
     "filosofi": {
@@ -74,6 +77,26 @@ def build_records(frame: pd.DataFrame) -> list[dict[str, object]]:
     ]
 
 
+def resolve_available_years(dataset_id: str, frame: pd.DataFrame, year_column: str, year: int) -> list[int]:
+    if dataset_id == "dvf":
+        configured_years = load_pipeline_config().get("dvf_years", [])
+        if configured_years:
+            return configured_years
+
+    if year_column and year_column in frame.columns:
+        years = sorted(
+            pd.to_numeric(frame[year_column], errors="coerce")
+            .dropna()
+            .astype(int)
+            .unique()
+            .tolist()
+        )
+        if years:
+            return years
+
+    return [year]
+
+
 def build_preview(dataset_id: str, config: dict[str, object], year: int) -> None:
     source_path_template = config["source_path_template"]
     output_path = config["output_path"]
@@ -82,24 +105,25 @@ def build_preview(dataset_id: str, config: dict[str, object], year: int) -> None
 
     assert isinstance(source_path_template, Path)
     assert isinstance(output_path, Path)
-    assert isinstance(source_file_location_template, str)
-
     source_path = Path(str(source_path_template).format(year=year))
     if not source_path.exists():
         raise FileNotFoundError(f"Missing source parquet: {source_path}")
 
     log(f"Loading {dataset_id} preview source: {source_path}")
     frame = pd.read_parquet(source_path)
-    years = []
-    if year_column and year_column in frame.columns:
-        years = sorted(pd.to_numeric(frame[year_column], errors="coerce").dropna().astype(int).unique().tolist())
+    years = resolve_available_years(dataset_id, frame, year_column, year)
+    source_file_location = (
+        relative_raw_location(year)
+        if dataset_id == "dvf"
+        else source_file_location_template.format(year=year)
+    )
 
     payload = {
         "dataset_id": dataset_id,
-        "source_file_location": source_file_location_template.format(year=year),
+        "source_file_location": source_file_location,
         "rows": int(len(frame)),
         "columns_count": int(len(frame.columns)),
-        "available_years": years or [year],
+        "available_years": years,
         "last_update": None,
         "columns": build_columns(frame),
         "records": build_records(frame),

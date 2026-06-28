@@ -93,6 +93,7 @@ export type DvfDepartmentSummary = {
 }
 
 export type DvfSummary = {
+  availableYears?: number[]
   generatedAt: string
   sourceFile: string
   filters: {
