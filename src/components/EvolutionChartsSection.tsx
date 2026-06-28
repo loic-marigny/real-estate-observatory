@@ -16,139 +16,159 @@ const formatCurrency = (value: number): string =>
     maximumFractionDigits: 0,
   }).format(value)
 
-const loadingMessage = 'Chargement des tendances FiLoSoFi…'
+const loadingMessage = 'Chargement des tendances FiLoSoFi...'
 const errorMessage =
   'Impossible de charger les tendances FiLoSoFi. Vérifiez la connexion et la configuration des données.'
 
 const INDICATOR_LABELS: Record<FilosofiTrendIndicator, string> = {
-  median_income: 'Revenu médian',
   d1_income: 'Décile D1 (10% plus pauvres)',
+  median_income: 'Revenu médian',
   d9_income: 'Décile D9 (10% plus riches)',
 }
 
 const INDICATOR_COLORS: Record<FilosofiTrendIndicator, string> = {
-  median_income: 'rgba(198, 96, 55, 0.9)',
-  d1_income: 'rgba(82, 150, 255, 0.9)',
-  d9_income: 'rgba(57, 186, 116, 0.9)',
+  d1_income: 'rgba(82, 150, 255, 0.95)',
+  median_income: 'rgba(198, 96, 55, 0.95)',
+  d9_income: 'rgba(57, 186, 116, 0.95)',
 }
 
 const DVF_SERIES = [
   {
-    name: 'Décile D1 (10% plus bas)',
+    id: 'dvf_d1',
+    name: 'Prix D1 au m²',
     field: 'd1PricePerSquareMeter' as const,
-    color: 'rgba(82, 150, 255, 0.8)',
-    area: 'rgba(82, 150, 255, 0.1)',
+    color: 'rgba(82, 150, 255, 0.55)',
   },
   {
+    id: 'dvf_median',
     name: 'Prix médian au m²',
     field: 'medianPricePerSquareMeter' as const,
-    color: 'rgba(198, 96, 55, 0.8)',
-    area: 'rgba(198, 96, 55, 0.1)',
+    color: 'rgba(198, 96, 55, 0.55)',
   },
   {
-    name: 'Décile D9 (10% plus hauts)',
+    id: 'dvf_d9',
+    name: 'Prix D9 au m²',
     field: 'd9PricePerSquareMeter' as const,
-    color: 'rgba(57, 186, 116, 0.8)',
-    area: 'rgba(57, 186, 116, 0.1)',
+    color: 'rgba(57, 186, 116, 0.55)',
   },
-]
+] as const
 
-const buildIncomeChartOptions = (
-  trendResult: FilosofiTrendResult,
-  visibleIndicators: Set<FilosofiTrendIndicator>,
-) => {
-  const years = trendResult.availableYears.map((year) => String(year))
-  const visibleSeries = trendResult.series.filter((series) =>
-    visibleIndicators.has(series.indicator),
-  )
+type CombinedSeriesId =
+  | FilosofiTrendIndicator
+  | (typeof DVF_SERIES)[number]['id']
 
-  return {
-    tooltip: {
-      trigger: 'axis',
-      formatter: (params: Array<Record<string, unknown>>) =>
-        params
-          .map((item) => {
-            const name = String(item.name ?? '')
-            const value = item.value
-            if (value === null || value === undefined) {
-              return `${name}: N/A`
-            }
-            return `${name}: ${formatCurrency(Number(value))} €`
-          })
-          .join('<br/>'),
-    },
-    legend: {
-      show: false,
-    },
-    grid: {
-      left: '10%',
-      right: '10%',
-      bottom: '14%',
-      top: '10%',
-    },
-    xAxis: {
-      type: 'category',
-      data: years,
-      boundaryGap: false,
-      axisLine: { lineStyle: { color: 'var(--color-border)' } },
-      axisLabel: { color: 'var(--color-muted)' },
-    },
-    yAxis: {
-      type: 'value',
-      axisLine: { lineStyle: { color: 'var(--color-border)' } },
-      splitLine: {
-        lineStyle: {
-          color: 'rgba(13, 43, 64, 0.08)',
-        },
-      },
-      axisLabel: {
-        formatter: (value: number) => `${formatCurrency(value)} €`,
-        color: 'var(--color-muted)',
-      },
-    },
-    series: visibleSeries.map((series) => ({
-      name: series.label,
-      type: 'line',
-      smooth: true,
-      connectNulls: false,
-      emphasis: { focus: 'series' },
-      lineStyle: {
-        color: INDICATOR_COLORS[series.indicator],
-      },
-      itemStyle: {
-        color: INDICATOR_COLORS[series.indicator],
-      },
-      data: series.points.map((point) =>
-        point.value === null ? null : Number(point.value.toFixed(0)),
-      ),
-    })),
-  }
+type CombinedLegendItem = {
+  id: CombinedSeriesId
+  label: string
+  color: string
+  axis: 'left' | 'right'
 }
 
-const buildDvfChartOptions = (dvfResult: DvfTrendResult) => {
-  const years = dvfResult.availableYears.map((year) => String(year))
+const INCOME_LEGEND_ORDER: FilosofiTrendIndicator[] = [
+  'd1_income',
+  'median_income',
+  'd9_income',
+]
 
-  const series = DVF_SERIES.map((template) => ({
-    ...template,
-    values: [...dvfResult.points]
-      .sort((left, right) => left.year - right.year)
-      .map((point) =>
-        point[template.field] === null || point[template.field] === undefined
-          ? null
-          : Number((point[template.field] as number).toFixed(0)),
-      ),
-  }))
-    .filter((seriesEntry) => seriesEntry.values.some((value) => value !== null))
-    .map((seriesEntry) => ({
-      name: seriesEntry.name,
-      type: 'line',
-      smooth: true,
-      connectNulls: false,
-      lineStyle: { color: seriesEntry.color },
-      areaStyle: { color: seriesEntry.area },
-      emphasis: { focus: 'series' },
-      data: seriesEntry.values,
-    }))
+const PRICE_LEGEND_ORDER: Array<(typeof DVF_SERIES)[number]['id']> = [
+  'dvf_d1',
+  'dvf_median',
+  'dvf_d9',
+]
+
+const DEFAULT_VISIBLE_SERIES = new Set<CombinedSeriesId>([
+  ...INCOME_LEGEND_ORDER,
+  ...PRICE_LEGEND_ORDER,
+])
+
+const COMBINED_LEGEND: CombinedLegendItem[] = [
+  ...INCOME_LEGEND_ORDER.map((indicator) => ({
+    id: indicator,
+    label: INDICATOR_LABELS[indicator],
+    color: INDICATOR_COLORS[indicator],
+    axis: 'left' as const,
+  })),
+  ...PRICE_LEGEND_ORDER.map((seriesId) => {
+    const series = DVF_SERIES.find((entry) => entry.id === seriesId)!
+    return {
+      id: series.id,
+      label: series.name,
+      color: series.color,
+      axis: 'right' as const,
+    }
+  }),
+]
+
+const LEFT_AXIS_LEGEND = COMBINED_LEGEND.filter((series) => series.axis === 'left')
+const RIGHT_AXIS_LEGEND = COMBINED_LEGEND.filter((series) => series.axis === 'right')
+
+const buildCombinedChartOptions = (
+  trendResult: FilosofiTrendResult | null,
+  dvfResult: DvfTrendResult | null,
+  visibleSeries: Set<CombinedSeriesId>,
+) => {
+  const years = Array.from(
+    new Set([
+      ...(trendResult?.availableYears ?? []),
+      ...(dvfResult?.availableYears ?? []),
+    ]),
+  ).sort((left, right) => left - right)
+
+  const incomeSeries = (trendResult?.series ?? [])
+    .filter((series) => visibleSeries.has(series.indicator))
+    .map((series) => {
+      const pointsByYear = new Map(series.points.map((point) => [point.year, point.value]))
+
+      return {
+        name: series.label,
+        type: 'line',
+        yAxisIndex: 0,
+        smooth: true,
+        connectNulls: series.indicator === 'median_income',
+        emphasis: { focus: 'series' },
+        lineStyle: {
+          color: INDICATOR_COLORS[series.indicator],
+          width: 2.5,
+        },
+        itemStyle: {
+          color: INDICATOR_COLORS[series.indicator],
+        },
+        data: years.map((year) => {
+          const value = pointsByYear.get(year)
+          return value === null || value === undefined ? null : Number(value.toFixed(0))
+        }),
+      }
+    })
+
+  const priceSeries = DVF_SERIES.filter((series) => visibleSeries.has(series.id))
+    .map((series) => {
+      const pointsByYear = new Map((dvfResult?.points ?? []).map((point) => [point.year, point]))
+
+      return {
+        name: series.name,
+        type: 'line',
+        yAxisIndex: 1,
+        smooth: true,
+        connectNulls: false,
+        emphasis: { focus: 'series' },
+        lineStyle: {
+          color: series.color,
+          width: 2,
+          type: 'dashed',
+        },
+        itemStyle: {
+          color: series.color,
+        },
+        data: years.map((year) => {
+          const point = pointsByYear.get(year)
+          const value = point?.[series.field]
+          return value === null || value === undefined
+            ? null
+            : Number((value as number).toFixed(0))
+        }),
+      }
+    })
+    .filter((series) => series.data.some((value) => value !== null))
 
   return {
     tooltip: {
@@ -176,25 +196,38 @@ const buildDvfChartOptions = (dvfResult: DvfTrendResult) => {
     },
     xAxis: {
       type: 'category',
-      data: years,
+      data: years.map(String),
       boundaryGap: false,
       axisLine: { lineStyle: { color: 'var(--color-border)' } },
       axisLabel: { color: 'var(--color-muted)' },
     },
-    yAxis: {
-      type: 'value',
-      axisLine: { lineStyle: { color: 'var(--color-border)' } },
-      splitLine: {
-        lineStyle: {
-          color: 'rgba(13, 43, 64, 0.08)',
+    yAxis: [
+      {
+        type: 'value',
+        name: 'Revenu',
+        axisLine: { lineStyle: { color: 'var(--color-border)' } },
+        splitLine: {
+          lineStyle: {
+            color: 'rgba(13, 43, 64, 0.08)',
+          },
+        },
+        axisLabel: {
+          formatter: (value: number) => `${formatCurrency(value)} €`,
+          color: 'var(--color-muted)',
         },
       },
-      axisLabel: {
-        formatter: (value: number) => `${formatCurrency(value)} €`,
-        color: 'var(--color-muted)',
+      {
+        type: 'value',
+        name: 'Prix du m²',
+        axisLine: { lineStyle: { color: 'var(--color-border)' } },
+        splitLine: { show: false },
+        axisLabel: {
+          formatter: (value: number) => `${formatCurrency(value)} €`,
+          color: 'var(--color-muted)',
+        },
       },
-    },
-    series,
+    ],
+    series: [...incomeSeries, ...priceSeries],
   }
 }
 
@@ -208,8 +241,8 @@ export default function EvolutionChartsSection({
   const [isLoading, setIsLoading] = useState(true)
   const [filosofiLoadError, setFilosofiLoadError] = useState(false)
   const [dvfLoadError, setDvfLoadError] = useState(false)
-  const [visibleIndicators, setVisibleIndicators] = useState<Set<FilosofiTrendIndicator>>(
-    new Set(FILOSOFI_TREND_INDICATORS),
+  const [visibleSeries, setVisibleSeries] = useState<Set<CombinedSeriesId>>(
+    DEFAULT_VISIBLE_SERIES,
   )
 
   useEffect(() => {
@@ -255,28 +288,28 @@ export default function EvolutionChartsSection({
     }
   }, [])
 
-  const toggleIndicator = (indicator: FilosofiTrendIndicator) => {
-    setVisibleIndicators((currentIndicators) => {
-      const nextIndicators = new Set(currentIndicators)
+  const toggleSeries = (seriesId: CombinedSeriesId) => {
+    setVisibleSeries((currentSeries) => {
+      const nextSeries = new Set(currentSeries)
 
-      if (nextIndicators.has(indicator)) {
-        nextIndicators.delete(indicator)
+      if (nextSeries.has(seriesId)) {
+        nextSeries.delete(seriesId)
       } else {
-        nextIndicators.add(indicator)
+        nextSeries.add(seriesId)
       }
 
-      return nextIndicators
+      return nextSeries
     })
   }
 
-  const incomeChartOptions = useMemo(
-    () => (trendResult ? buildIncomeChartOptions(trendResult, visibleIndicators) : null),
-    [trendResult, visibleIndicators],
+  const chartOptions = useMemo(
+    () => buildCombinedChartOptions(trendResult, dvfResult, visibleSeries),
+    [trendResult, dvfResult, visibleSeries],
   )
 
-  const dvfChartOptions = useMemo(
-    () => (dvfResult ? buildDvfChartOptions(dvfResult) : null),
-    [dvfResult],
+  const hasAnySeries = chartOptions.series.some(
+    (series: { data?: Array<number | null> }) =>
+      Array.isArray(series.data) && series.data.some((value) => value !== null),
   )
 
   return (
@@ -287,98 +320,69 @@ export default function EvolutionChartsSection({
         <p className="panel__footnote">{loadingMessage}</p>
       ) : filosofiLoadError && dvfLoadError ? (
         <p className="panel__footnote">{errorMessage}</p>
-      ) : trendResult || dvfResult ? (
-        <div className="evolution-charts-grid">
-          {trendResult ? (
-            <div className="evolution-chart-container">
-              <h3 className="evolution-chart-title">Revenus (FiLoSoFi)</h3>
+      ) : hasAnySeries ? (
+        <div className="evolution-chart-container evolution-chart-container--merged">
+          <h3 className="evolution-chart-title">Revenus et prix immobiliers</h3>
 
-              <div className="evolution-chart-wrapper">
-                <ReactECharts
-                  option={incomeChartOptions ?? {}}
-                  notMerge
-                  style={{ width: '100%', height: '340px' }}
-                />
-              </div>
+          <div className="evolution-chart-wrapper">
+            <ReactECharts
+              option={chartOptions}
+              notMerge
+              style={{ width: '100%', height: '400px' }}
+            />
+          </div>
 
-              <div className="evolution-control-panel">
-                <p className="evolution-control-panel__title">Indicateurs</p>
-                <div className="evolution-indicators-legend" aria-hidden="true">
-                  {FILOSOFI_TREND_INDICATORS.map((indicator) => (
-                    <span
-                      key={`${indicator}-legend`}
-                      className="evolution-indicators-legend__item"
-                    >
-                      <span
-                        className="evolution-indicators-legend__swatch"
-                        style={{ backgroundColor: INDICATOR_COLORS[indicator] }}
-                      />
-                      <span>{INDICATOR_LABELS[indicator]}</span>
-                    </span>
-                  ))}
-                </div>
-                <div className="indicators-checkboxes">
-                  {FILOSOFI_TREND_INDICATORS.map((indicator) => (
-                    <label key={indicator} className="checkbox-label">
+          <div className="evolution-control-panel">
+            <p className="evolution-control-panel__title">Séries affichées</p>
+            <div className="evolution-legend-columns">
+              <div className="evolution-legend-column">
+                <p className="evolution-legend-column__title">Revenu</p>
+                <div className="evolution-indicators-legend evolution-indicators-legend--stacked">
+                  {LEFT_AXIS_LEGEND.map((series) => (
+                    <label key={series.id} className="checkbox-label checkbox-label--legend">
                       <input
                         type="checkbox"
-                        checked={visibleIndicators.has(indicator)}
-                        onChange={() => toggleIndicator(indicator)}
+                        checked={visibleSeries.has(series.id)}
+                        onChange={() => toggleSeries(series.id)}
                         className="checkbox-input"
                       />
-                      <span className="checkbox-text">{INDICATOR_LABELS[indicator]}</span>
+                      <span
+                        className="evolution-indicators-legend__swatch"
+                        style={{ backgroundColor: series.color }}
+                      />
+                      <span className="checkbox-text">{series.label}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
-              <p className="panel__footnote">
-                Données disponibles pour les années : {trendResult.availableYears.join(', ')}.
-              </p>
-            </div>
-          ) : filosofiLoadError ? (
-            <div className="evolution-chart-container">
-              <h3 className="evolution-chart-title">Revenus (FiLoSoFi)</h3>
-              <p className="panel__footnote">{errorMessage}</p>
-            </div>
-          ) : null}
-
-          {dvfResult ? (
-            <div className="evolution-chart-container">
-              <h3 className="evolution-chart-title">Prix immobilier (DVF)</h3>
-
-              <div className="evolution-chart-wrapper">
-                <ReactECharts
-                  option={dvfChartOptions ?? {}}
-                  style={{ width: '100%', height: '340px' }}
-                />
-              </div>
-
-              <div className="evolution-control-panel">
-                <p className="evolution-control-panel__title">Repères</p>
-                <div className="evolution-indicators-legend evolution-indicators-legend--standalone">
-                  {DVF_SERIES.map((series) => (
-                    <span key={series.name} className="evolution-indicators-legend__item">
+              <div className="evolution-legend-column">
+                <p className="evolution-legend-column__title">Prix du m²</p>
+                <div className="evolution-indicators-legend evolution-indicators-legend--stacked">
+                  {RIGHT_AXIS_LEGEND.map((series) => (
+                    <label key={series.id} className="checkbox-label checkbox-label--legend">
+                      <input
+                        type="checkbox"
+                        checked={visibleSeries.has(series.id)}
+                        onChange={() => toggleSeries(series.id)}
+                        className="checkbox-input"
+                      />
                       <span
                         className="evolution-indicators-legend__swatch"
                         style={{ backgroundColor: series.color }}
                       />
-                      <span>{series.name}</span>
-                    </span>
+                      <span className="checkbox-text">{series.label}</span>
+                    </label>
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
 
-              <p className="panel__footnote">
-                Données disponibles pour les années : {dvfResult.availableYears.join(', ')}.
-              </p>
-            </div>
-          ) : dvfLoadError ? (
-            <div className="evolution-chart-container">
-              <h3 className="evolution-chart-title">Prix immobilier (DVF)</h3>
-              <p className="panel__footnote">Impossible de charger les tendances DVF.</p>
-            </div>
-          ) : null}
+          <p className="panel__footnote panel__footnote--compact">
+            FiLoSoFi : {trendResult?.availableYears.join(', ') ?? 'indisponible'}. DVF :{' '}
+            {dvfResult?.availableYears.join(', ') ?? 'indisponible'}.
+          </p>
         </div>
       ) : (
         <p className="panel__footnote">Aucune donnée de tendance disponible.</p>

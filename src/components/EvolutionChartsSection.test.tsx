@@ -31,7 +31,7 @@ describe('EvolutionChartsSection', () => {
     cleanup()
   })
 
-  it('renders the description and loads trend data for both FiLoSoFi and DVF', async () => {
+  it('renders one combined chart for FiLoSoFi and DVF', async () => {
     mockQueryFilosofiTrend.mockResolvedValue({
       availableYears: [2017, 2018, 2023],
       geographyLevel: 'commune',
@@ -68,31 +68,19 @@ describe('EvolutionChartsSection', () => {
     })
 
     mockQueryDvfTrend.mockResolvedValue({
-      availableYears: [2021, 2022, 2023, 2024],
+      availableYears: [2014, 2021, 2022, 2023, 2024],
       points: [
         {
-          year: 2021,
-          medianPricePerSquareMeter: 2350.0,
-          d1PricePerSquareMeter: 1800.0,
-          d9PricePerSquareMeter: 3200.0,
-        },
-        {
-          year: 2022,
-          medianPricePerSquareMeter: 2480.0,
-          d1PricePerSquareMeter: 1900.0,
-          d9PricePerSquareMeter: 3300.0,
-        },
-        {
-          year: 2023,
-          medianPricePerSquareMeter: 2550.0,
-          d1PricePerSquareMeter: 1950.0,
-          d9PricePerSquareMeter: 3400.0,
+          year: 2014,
+          medianPricePerSquareMeter: 2100,
+          d1PricePerSquareMeter: 1600,
+          d9PricePerSquareMeter: 2900,
         },
         {
           year: 2024,
-          medianPricePerSquareMeter: 2622.95,
-          d1PricePerSquareMeter: 2000.0,
-          d9PricePerSquareMeter: 3500.0,
+          medianPricePerSquareMeter: 2623,
+          d1PricePerSquareMeter: 2000,
+          d9PricePerSquareMeter: 3500,
         },
       ],
     })
@@ -101,21 +89,16 @@ describe('EvolutionChartsSection', () => {
       <EvolutionChartsSection description="Test description for income and real estate trends." />,
     )
 
-    expect(screen.getByText(/Test description for income and real estate trends/)).toBeTruthy()
-
     await waitFor(() => {
-      expect(screen.getByText('Revenus (FiLoSoFi)')).toBeTruthy()
+      expect(screen.getByText('Revenus et prix immobiliers')).toBeTruthy()
     })
 
-    expect(screen.getByText('Prix immobilier (DVF)')).toBeTruthy()
     expect(screen.getByText('Revenu médian')).toBeTruthy()
     expect(screen.getByText('Prix médian au m²')).toBeTruthy()
-
-    const echartsElements = screen.getAllByTestId('echarts')
-    expect(echartsElements.length).toBe(2)
+    expect(screen.getAllByTestId('echarts').length).toBe(1)
   })
 
-  it('keeps the DVF chart visible when FiLoSoFi loading fails', async () => {
+  it('keeps one combined chart visible when FiLoSoFi loading fails', async () => {
     mockQueryFilosofiTrend.mockRejectedValue(new Error('FiLoSoFi unavailable'))
     mockQueryDvfTrend.mockResolvedValue({
       availableYears: [2023, 2024],
@@ -138,13 +121,10 @@ describe('EvolutionChartsSection', () => {
     render(<EvolutionChartsSection description="Test partial failure." />)
 
     await waitFor(() => {
-      expect(screen.getByText('Prix immobilier (DVF)')).toBeTruthy()
+      expect(screen.getByText('Revenus et prix immobiliers')).toBeTruthy()
     })
 
-    expect(screen.getByText('Revenus (FiLoSoFi)')).toBeTruthy()
-    expect(
-      screen.getByText(/Impossible de charger les tendances FiLoSoFi/),
-    ).toBeTruthy()
+    expect(screen.getByText('Prix médian au m²')).toBeTruthy()
     expect(screen.getAllByTestId('echarts').length).toBe(1)
   })
 })

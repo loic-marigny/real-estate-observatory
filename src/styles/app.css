@@ -236,6 +236,10 @@
   line-height: 1.6;
 }
 
+.panel__footnote--compact {
+  font-size: 0.85rem;
+}
+
 .evolution-charts-section {
   display: flex;
   flex-direction: column;
@@ -251,16 +255,14 @@
   color: var(--color-text);
 }
 
-.evolution-charts-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
-}
-
 .evolution-chart-container {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.evolution-chart-container--merged {
+  gap: 18px;
 }
 
 .evolution-chart-title {
@@ -284,7 +286,7 @@
 }
 
 .evolution-control-panel__title {
-  margin: 0 0 4px;
+  margin: 0 0 10px;
   font-size: 0.88rem;
   font-weight: 700;
   color: var(--color-text);
@@ -297,8 +299,37 @@
   margin-bottom: 10px;
 }
 
+.evolution-indicators-legend--merged,
+.evolution-indicators-legend--stacked {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 0;
+}
+
 .evolution-indicators-legend--standalone {
   margin-bottom: 0;
+}
+
+.evolution-legend-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.evolution-legend-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.evolution-legend-column__title {
+  margin: 0;
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .evolution-indicators-legend__item {
@@ -314,6 +345,7 @@
   height: 12px;
   border-radius: 999px;
   flex: 0 0 auto;
+  align-self: center;
 }
 
 .indicators-checkboxes {
@@ -328,6 +360,11 @@
   gap: 10px;
   cursor: pointer;
   user-select: none;
+}
+
+.checkbox-label--legend {
+  align-items: center;
+  min-height: 48px;
 }
 
 .checkbox-input {
@@ -347,7 +384,7 @@
 }
 
 @media (max-width: 1024px) {
-  .evolution-charts-grid {
+  .evolution-legend-columns {
     grid-template-columns: 1fr;
   }
 }
