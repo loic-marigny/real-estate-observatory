@@ -46,6 +46,7 @@ def try_run_step(*args: str) -> bool:
     unavailable_markers = [
         "is not available. Available years:",
         "No yearly DVF directories found",
+        "Legacy DVF resource for year",
     ]
     combined_output = f"{completed.stdout}\n{completed.stderr}"
     if any(marker in combined_output for marker in unavailable_markers):

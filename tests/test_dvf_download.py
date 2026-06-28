@@ -5,6 +5,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from botocore.exceptions import ClientError
+
 from data.scripts.dvf import download
 from data.scripts.dvf.sources import LEGACY_DVF_FILENAME
 from data.scripts.dvf.sources import resolve_existing_raw_path
@@ -41,6 +43,31 @@ class DvfDownloadTests(unittest.TestCase):
 
             with mock.patch("data.scripts.dvf.sources.RAW_DATA_DIR", raw_root):
                 self.assertEqual(resolve_existing_raw_path(2017), archive_path)
+
+    def test_try_download_from_r2_downloads_matching_archive(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            raw_root = Path(temp_dir)
+            mock_client = mock.Mock()
+            mock_client.head_object.side_effect = [
+                ClientError({"Error": {"Code": "404", "Message": "Not Found"}}, "HeadObject"),
+                ClientError({"Error": {"Code": "404", "Message": "Not Found"}}, "HeadObject"),
+                {"ResponseMetadata": {"HTTPStatusCode": 200}},
+            ]
+
+            with (
+                mock.patch("data.scripts.dvf.sources.RAW_DATA_DIR", raw_root),
+                mock.patch("data.scripts.dvf.download.create_s3_client", return_value=(mock_client, "bucket")),
+            ):
+                downloaded_path = download.try_download_from_r2(2017)
+
+            self.assertIsNotNone(downloaded_path)
+            assert downloaded_path is not None
+            self.assertEqual(downloaded_path.name, "2017-full.csv.zip")
+            mock_client.download_file.assert_called_once_with(
+                "bucket",
+                "raw/dvf/year=2017/2017-full.csv.zip",
+                str(downloaded_path),
+            )
 
 
 if __name__ == "__main__":

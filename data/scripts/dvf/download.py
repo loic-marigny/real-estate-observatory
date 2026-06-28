@@ -6,16 +6,21 @@ from pathlib import Path
 from urllib.parse import urljoin
 
 import requests
+from botocore.exceptions import ClientError
 
 from data.scripts.dvf.sources import (
     GEO_DVF_DOWNLOAD_URL,
     get_dvf_source,
+    raw_input_candidates,
     raw_output_path,
     resolve_existing_raw_path,
 )
+from scripts.storage.r2_upload import create_s3_client
+
 CHUNK_SIZE = 1024 * 1024
 REQUEST_TIMEOUT = 120
 MAX_DOWNLOAD_ATTEMPTS = 3
+RAW_R2_PREFIX = "raw/dvf"
 
 YEAR_LINK_PATTERN = re.compile(r'href="[^"]*/(?P<year>\d{4})/"')
 
@@ -68,6 +73,37 @@ def can_reuse_local_archive(year: int | None) -> bool:
     return year is not None and resolve_existing_raw_path(year) is not None
 
 
+def iter_raw_r2_targets(year: int) -> list[tuple[Path, str]]:
+    return [
+        (path, f"{RAW_R2_PREFIX}/year={year}/{path.name}")
+        for path in raw_input_candidates(year)
+    ]
+
+
+def try_download_from_r2(year: int) -> Path | None:
+    try:
+        client, bucket_name = create_s3_client()
+    except RuntimeError:
+        return None
+
+    for local_path, remote_key in iter_raw_r2_targets(year):
+        try:
+            client.head_object(Bucket=bucket_name, Key=remote_key)
+        except ClientError as error:
+            error_code = error.response.get("Error", {}).get("Code", "")
+            if error_code in {"404", "NoSuchKey", "NotFound"}:
+                continue
+            raise
+
+        local_path.parent.mkdir(parents=True, exist_ok=True)
+        log(f"Downloading DVF raw archive from R2: s3://{bucket_name}/{remote_key}")
+        client.download_file(bucket_name, remote_key, str(local_path))
+        log(f"Downloaded R2 archive to: {local_path}")
+        return local_path
+
+    return None
+
+
 def stream_download(session: requests.Session, download_url: str, temp_output_path: Path) -> None:
     for attempt in range(1, MAX_DOWNLOAD_ATTEMPTS + 1):
         downloaded_bytes = temp_output_path.stat().st_size if temp_output_path.exists() else 0
@@ -112,6 +148,11 @@ def main() -> None:
         output_path = resolve_existing_raw_path(args.year)
         log(f"Skipping download, file already exists: {output_path}")
         return
+
+    if args.year is not None:
+        r2_archive_path = try_download_from_r2(args.year)
+        if r2_archive_path is not None:
+            return
 
     with requests.Session() as session:
         year, download_url = resolve_download_url(session, args.year)
