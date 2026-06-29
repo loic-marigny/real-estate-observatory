@@ -44,4 +44,6 @@ export const getFilosofiParquetUrl = (
 export const dvfAssetUrls = {
   allYearsParquetGlob: () => getDataAssetUrl('gold/dvf/year=*/dvf_national.parquet'),
   yearParquet: (year: number) => getDataAssetUrl(`gold/dvf/year=${year}/dvf_national.parquet`),
+  yearSilverParquet: (year: number) =>
+    getDataAssetUrl(`silver/dvf/year=${year}/dvf_silver.parquet`),
 }

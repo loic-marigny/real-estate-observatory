@@ -1,7 +1,7 @@
 import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { DataTable } from '../components/dataexplorer/DataTable'
 import { DatasetInfoCard } from '../components/dataexplorer/DatasetInfoCard'
 import { DatasetSelector } from '../components/dataexplorer/DatasetSelector'
-import { DataTable } from '../components/dataexplorer/DataTable'
 import { FilosofiQueryPanel } from '../components/dataexplorer/FilosofiQueryPanel'
 import type { BusinessDatasetId } from '../data/datasetRegistry'
 import {
@@ -29,10 +29,15 @@ import type {
 
 const DEFAULT_PAGE_SIZE = 20
 
+const getLatestYear = (years: number[]): number | null =>
+  years.length > 0 ? [...years].sort((left, right) => left - right).at(-1) ?? null : null
+
 export function DataExplorer() {
   const [datasets, setDatasets] = useState<DatasetDescriptor[]>([])
   const [selectedDatasetId, setSelectedDatasetId] =
     useState<BusinessDatasetId>('dvf')
+  const [selectedDvfYear, setSelectedDvfYear] = useState<number | null>(null)
+  const [isDvfYearMenuOpen, setIsDvfYearMenuOpen] = useState(false)
   const [selectedPreview, setSelectedPreview] = useState<DatasetPreview | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -60,8 +65,27 @@ export function DataExplorer() {
   const [filosofiError, setFilosofiError] = useState<string | null>(null)
   const [isFilosofiLoading, setIsFilosofiLoading] = useState(false)
   const requestSequenceRef = useRef(0)
+  const dvfYearMenuRef = useRef<HTMLDivElement | null>(null)
 
   const deferredSearchQuery = useDeferredValue(searchQuery)
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!dvfYearMenuRef.current) {
+        return
+      }
+
+      if (!dvfYearMenuRef.current.contains(event.target as Node)) {
+        setIsDvfYearMenuOpen(false)
+      }
+    }
+
+    window.addEventListener('mousedown', handlePointerDown)
+
+    return () => {
+      window.removeEventListener('mousedown', handlePointerDown)
+    }
+  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -72,7 +96,11 @@ export function DataExplorer() {
         if (!isMounted) {
           return
         }
+
         setDatasets(descriptors)
+        const dvfDataset = descriptors.find((dataset) => dataset.id === 'dvf')
+        const latestDvfYear = getLatestYear(dvfDataset?.availableYears ?? [])
+        setSelectedDvfYear((current) => current ?? latestDvfYear)
       } catch {
         if (isMounted) {
           setError('Impossible de charger le catalogue des jeux de données.')
@@ -94,14 +122,28 @@ export function DataExplorer() {
 
     const loadPreview = async () => {
       try {
-        const preview = await getDatasetPreview(selectedDatasetId)
+        const preview = await getDatasetPreview(
+          selectedDatasetId,
+          selectedDatasetId === 'dvf' ? selectedDvfYear ?? undefined : undefined,
+        )
+
         if (!isMounted) {
           return
         }
+
         setSelectedPreview(preview)
+
+        if (selectedDatasetId === 'dvf') {
+          const latestDvfYear = getLatestYear(preview.dataset.availableYears)
+          setSelectedDvfYear((current) =>
+            current && preview.dataset.availableYears.includes(current)
+              ? current
+              : latestDvfYear,
+          )
+        }
       } catch {
         if (isMounted) {
-          setError('Impossible de charger l’aperçu du jeu de données sélectionné.')
+          setError("Impossible de charger l’aperçu du jeu de données sélectionné.")
           setSelectedPreview(null)
         }
       } finally {
@@ -116,7 +158,7 @@ export function DataExplorer() {
     return () => {
       isMounted = false
     }
-  }, [selectedDatasetId])
+  }, [selectedDatasetId, selectedDvfYear])
 
   useEffect(() => {
     if (selectedDatasetId !== 'filosofi') {
@@ -277,6 +319,11 @@ export function DataExplorer() {
   )
 
   const hasFilosofiInterface = selectedDatasetId === 'filosofi'
+  const hasDvfInterface = selectedDatasetId === 'dvf'
+  const dvfAvailableYears =
+    datasets.find((dataset) => dataset.id === 'dvf')?.availableYears ??
+    selectedPreview?.dataset.availableYears ??
+    []
 
   const resultColumns = useMemo<FilosofiResultColumn[]>(() => {
     if (!selectedIndicator) {
@@ -318,22 +365,9 @@ export function DataExplorer() {
             setSelectedDatasetId(datasetId)
             setPage(1)
             setSearchQuery('')
+            setIsDvfYearMenuOpen(false)
           }}
         />
-
-        {selectedDataset ? <DatasetInfoCard dataset={selectedDataset} /> : null}
-
-        {error ? (
-          <section className="panel">
-            <p>{error}</p>
-          </section>
-        ) : null}
-
-        {isLoading ? (
-          <section className="panel">
-            <p>Chargement de l’aperçu du jeu de données…</p>
-          </section>
-        ) : null}
 
         {hasFilosofiInterface ? (
           <FilosofiQueryPanel
@@ -387,9 +421,89 @@ export function DataExplorer() {
             isLoading={isFilosofiLoading}
             error={filosofiError}
           />
+        ) : hasDvfInterface ? (
+          <>
+            <section className="panel data-explorer-year-panel">
+              <div className="page-size-selector" ref={dvfYearMenuRef}>
+                <span className="search-bar__label">Année DVF</span>
+                <button
+                  type="button"
+                  className={`page-size-selector__select page-size-selector__select--custom${
+                    isDvfYearMenuOpen ? ' page-size-selector__select--open' : ''
+                  }`}
+                  onClick={() => setIsDvfYearMenuOpen((current) => !current)}
+                  aria-haspopup="listbox"
+                  aria-expanded={isDvfYearMenuOpen}
+                >
+                  <span>{selectedDvfYear ?? 'Sélectionner'}</span>
+                  <span className="page-size-selector__chevron" aria-hidden="true">
+                    ▾
+                  </span>
+                </button>
+                {isDvfYearMenuOpen ? (
+                  <div className="page-size-selector__menu" role="listbox" aria-label="Année DVF">
+                    {dvfAvailableYears
+                      .slice()
+                      .sort((left, right) => right - left)
+                      .map((year) => (
+                        <button
+                          key={year}
+                          type="button"
+                          role="option"
+                          aria-selected={selectedDvfYear === year}
+                          className={`page-size-selector__option${
+                            selectedDvfYear === year
+                              ? ' page-size-selector__option--selected'
+                              : ''
+                          }`}
+                          onClick={() => {
+                            setSelectedDvfYear(year)
+                            setIsDvfYearMenuOpen(false)
+                          }}
+                        >
+                          {year}
+                        </button>
+                      ))}
+                  </div>
+                ) : null}
+              </div>
+              <p className="panel__footnote panel__footnote--compact">
+                Les millésimes DVF historiques peuvent exposer moins de colonnes que
+                les années récentes. L’aperçu s’adapte automatiquement au schéma
+                disponible pour l’année sélectionnée.
+              </p>
+            </section>
+            {error ? (
+              <section className="panel">
+                <p>{error}</p>
+              </section>
+            ) : null}
+            {isLoading ? (
+              <section className="panel">
+                <p>Chargement de l’aperçu du jeu de données…</p>
+              </section>
+            ) : null}
+            {selectedPreview ? (
+              <DataTable columns={selectedPreview.columns} rows={selectedPreview.records} />
+            ) : null}
+          </>
         ) : selectedPreview ? (
           <DataTable columns={selectedPreview.columns} rows={selectedPreview.records} />
         ) : null}
+
+        {!hasDvfInterface && error ? (
+          <section className="panel">
+            <p>{error}</p>
+          </section>
+        ) : null}
+
+        {!hasDvfInterface && isLoading ? (
+          <section className="panel">
+            <p>Chargement de l’aperçu du jeu de données…</p>
+          </section>
+        ) : null}
+
+        {selectedDataset ? <DatasetInfoCard dataset={selectedDataset} /> : null}
       </section>
     </div>
   )

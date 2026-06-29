@@ -665,7 +665,7 @@ export function DepartmentChoropleth({
           </div>
 
           <p className="choropleth-footnote">
-            Carte métropolitaine et Corse. Les DVF n'incluent pas le Bas-Rhin, le
+            Carte hexagonale et Corse. Les DVF n'incluent pas le Bas-Rhin, le
             Haut-Rhin ni la Moselle, qui relèvent du droit local du livre foncier.
           </p>
         </div>

@@ -3,6 +3,8 @@ import {
   datasetRegistryList,
   type BusinessDatasetId,
 } from '../data/datasetRegistry'
+import { dvfAssetUrls } from './dataAssetConfig'
+import { duckdbClient } from './duckdbClient'
 import { formatPreviewLabel, normalizePreviewValue } from '../utils/text'
 
 export type DatasetColumn = {
@@ -39,6 +41,15 @@ export type DatasetPreview = {
   columns: DatasetColumn[]
   records: Array<Record<string, unknown>>
 }
+
+const getDvfYearPreviewUrl = (year: number): string =>
+  `/data/dvf_previews/year=${year}/dvf_preview.json`
+
+const escapeSqlStringLiteral = (value: string): string =>
+  `'${value.replaceAll("'", "''")}'`
+
+const quoteSqlIdentifier = (value: string): string =>
+  `"${value.replaceAll('"', '""')}"`
 
 const asNumberArray = (value: unknown): number[] =>
   Array.isArray(value)
@@ -98,11 +109,105 @@ const normalizePreviewPayload = (payload: unknown): DatasetPreviewResponse => {
           .filter((item) => item.key !== '')
       : [],
     records: Array.isArray(record.records)
-      ? record.records.filter(
-          (item): item is Record<string, unknown> =>
-            Boolean(item) && typeof item === 'object',
-        ).map(normalizeRecord)
+      ? record.records
+          .filter(
+            (item): item is Record<string, unknown> =>
+              Boolean(item) && typeof item === 'object',
+          )
+          .map(normalizeRecord)
       : [],
+  }
+}
+
+const buildDatasetDescriptor = (
+  entry: (typeof datasetRegistry)[BusinessDatasetId],
+  payload: DatasetPreviewResponse,
+): DatasetDescriptor => ({
+  id: entry.id,
+  label: entry.label,
+  description: entry.description,
+  sourceOrganization: entry.sourceOrganization,
+  availableYears: payload.available_years,
+  sourceFileLocation: payload.source_file_location,
+  rows: payload.rows,
+  columns: payload.columns_count,
+  lastUpdate: payload.last_update,
+})
+
+const fetchPreviewPayload = async (
+  datasetId: BusinessDatasetId,
+): Promise<{
+  entry: (typeof datasetRegistry)[BusinessDatasetId]
+  payload: DatasetPreviewResponse
+}> => {
+  const entry = datasetRegistry[datasetId]
+  if (!entry) {
+    throw new Error(`Unsupported dataset: ${datasetId}`)
+  }
+
+  const response = await fetch(entry.previewUrl)
+  if (!response.ok) {
+    throw new Error(`Failed to load ${entry.label}: ${response.status}`)
+  }
+
+  const payload = normalizePreviewPayload((await response.json()) as unknown)
+  return { entry, payload }
+}
+
+const listParquetColumns = async (parquetUrl: string): Promise<string[]> => {
+  const escapedUrl = escapeSqlStringLiteral(parquetUrl)
+  const rows = await duckdbClient.query(`
+    DESCRIBE SELECT *
+    FROM read_parquet(${escapedUrl})
+  `)
+
+  return rows
+    .map((row) => row.column_name)
+    .filter((value): value is string => typeof value === 'string' && value.length > 0)
+}
+
+const getDvfPreviewFromParquet = async (
+  preview: DatasetPreview,
+  year: number,
+): Promise<DatasetPreview> => {
+  const parquetUrl = dvfAssetUrls.yearSilverParquet(year)
+  const escapedUrl = escapeSqlStringLiteral(parquetUrl)
+  const [availableColumnKeys, countRows] = await Promise.all([
+    listParquetColumns(parquetUrl),
+    duckdbClient.query(`
+      SELECT COUNT(*) AS row_count
+      FROM read_parquet(${escapedUrl})
+    `),
+  ])
+
+  const selectedColumns = preview.columns.filter((column) =>
+    availableColumnKeys.includes(column.key),
+  )
+  const columnList = selectedColumns.map((column) => quoteSqlIdentifier(column.key)).join(', ')
+  const previewRows =
+    columnList.length > 0
+      ? await duckdbClient.query(`
+          SELECT ${columnList}
+          FROM read_parquet(${escapedUrl})
+          LIMIT 500
+        `)
+      : []
+
+  const rowCountValue = countRows[0]?.row_count
+  const normalizedRowCount =
+    typeof rowCountValue === 'number'
+      ? rowCountValue
+      : Number(rowCountValue ?? preview.dataset.rows ?? 0)
+
+  return {
+    dataset: {
+      ...preview.dataset,
+      rows: Number.isFinite(normalizedRowCount) ? normalizedRowCount : preview.dataset.rows,
+      columns: availableColumnKeys.length,
+      sourceFileLocation: `data/raw/dvf/year=${year}/`,
+    },
+    columns: selectedColumns,
+    records: previewRows.map((record) => normalizeRecord(record)),
   }
 }
 
@@ -115,17 +220,7 @@ export async function listDatasets(): Promise<DatasetDescriptor[]> {
           throw new Error(`Preview unavailable: ${response.status}`)
         }
         const payload = normalizePreviewPayload((await response.json()) as unknown)
-        return {
-          id: entry.id,
-          label: entry.label,
-          description: entry.description,
-          sourceOrganization: entry.sourceOrganization,
-          availableYears: payload.available_years,
-          sourceFileLocation: payload.source_file_location,
-          rows: payload.rows,
-          columns: payload.columns_count,
-          lastUpdate: payload.last_update,
-        }
+        return buildDatasetDescriptor(entry, payload)
       } catch {
         return {
           id: entry.id,
@@ -147,32 +242,37 @@ export async function listDatasets(): Promise<DatasetDescriptor[]> {
 
 export async function getDatasetPreview(
   datasetId: BusinessDatasetId,
+  year?: number,
 ): Promise<DatasetPreview> {
-  const entry = datasetRegistry[datasetId]
-  if (!entry) {
-    throw new Error(`Unsupported dataset: ${datasetId}`)
+  if (datasetId === 'dvf' && typeof year === 'number' && Number.isFinite(year)) {
+    try {
+      const response = await fetch(getDvfYearPreviewUrl(year))
+      if (response.ok) {
+        const payload = normalizePreviewPayload((await response.json()) as unknown)
+        const entry = datasetRegistry[datasetId]
+
+        return {
+          dataset: buildDatasetDescriptor(entry, payload),
+          columns: payload.columns,
+          records: payload.records,
+        }
+      }
+    } catch {
+      // Fall back to live parquet preview when the yearly public preview is missing.
+    }
   }
 
-  const response = await fetch(entry.previewUrl)
-  if (!response.ok) {
-    throw new Error(`Failed to load ${entry.label}: ${response.status}`)
-  }
+  const { entry, payload } = await fetchPreviewPayload(datasetId)
 
-  const payload = normalizePreviewPayload((await response.json()) as unknown)
-
-  return {
-    dataset: {
-      id: entry.id,
-      label: entry.label,
-      description: entry.description,
-      sourceOrganization: entry.sourceOrganization,
-      availableYears: payload.available_years,
-      sourceFileLocation: payload.source_file_location,
-      rows: payload.rows,
-      columns: payload.columns_count,
-      lastUpdate: payload.last_update,
-    },
+  const preview: DatasetPreview = {
+    dataset: buildDatasetDescriptor(entry, payload),
     columns: payload.columns,
     records: payload.records,
   }
+
+  if (datasetId === 'dvf' && typeof year === 'number' && Number.isFinite(year)) {
+    return getDvfPreviewFromParquet(preview, year)
+  }
+
+  return preview
 }

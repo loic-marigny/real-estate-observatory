@@ -20,12 +20,14 @@ DATASETS = {
     "dvf": {
         "source_path_template": ROOT_DIR / "data" / "silver" / "dvf" / "year={year}" / "dvf_silver.parquet",
         "output_path": PUBLIC_DATA_DIR / "dvf_preview.json",
+        "year_output_path_template": PUBLIC_DATA_DIR / "dvf_previews" / "year={year}" / "dvf_preview.json",
         "source_file_location_template": None,
         "year_column": "year",
     },
     "filosofi": {
         "source_path_template": ROOT_DIR / "data" / "silver" / "filosofi" / "year={year}" / "filosofi_silver.parquet",
         "output_path": PUBLIC_DATA_DIR / "filosofi_preview.json",
+        "year_output_path_template": None,
         "source_file_location_template": "data/raw/filosofi/year={year}/",
         "year_column": "year",
     },
@@ -100,6 +102,7 @@ def resolve_available_years(dataset_id: str, frame: pd.DataFrame, year_column: s
 def build_preview(dataset_id: str, config: dict[str, object], year: int) -> None:
     source_path_template = config["source_path_template"]
     output_path = config["output_path"]
+    year_output_path_template = config["year_output_path_template"]
     source_file_location_template = config["source_file_location_template"]
     year_column = config["year_column"]
 
@@ -135,6 +138,15 @@ def build_preview(dataset_id: str, config: dict[str, object], year: int) -> None
         encoding="utf-8",
     )
     log(f"Wrote {dataset_id} preview: {output_path}")
+
+    if year_output_path_template is not None:
+        year_output_path = Path(str(year_output_path_template).format(year=year))
+        year_output_path.parent.mkdir(parents=True, exist_ok=True)
+        year_output_path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False),
+            encoding="utf-8",
+        )
+        log(f"Wrote {dataset_id} yearly preview: {year_output_path}")
 
 
 def main() -> None:

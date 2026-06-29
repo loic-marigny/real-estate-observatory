@@ -370,7 +370,7 @@ export default function EvolutionChartsSection({
           </div>
 
           <p className="panel__footnote panel__footnote--compact">
-            Revenus : série nationale Insee, France métropolitaine. DVF :{' '}
+            Revenus : série nationale Insee, France hexagonale. DVF :{' '}
             {dvfResult?.availableYears.join(', ') ?? 'indisponible'}.
           </p>
         </div>

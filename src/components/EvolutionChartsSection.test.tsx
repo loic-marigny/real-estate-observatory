@@ -92,7 +92,7 @@ describe('EvolutionChartsSection', () => {
     expect(screen.getByText('Revenu médian')).toBeTruthy()
     expect(screen.getByText('Prix médian au m²')).toBeTruthy()
     expect(
-      screen.getByText(/Revenus : série nationale Insee, France métropolitaine/i),
+      screen.getByText(/Revenus : série nationale Insee, France hexagonale/i),
     ).toBeTruthy()
     expect(screen.getAllByTestId('echarts').length).toBe(1)
   })

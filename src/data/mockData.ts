@@ -76,7 +76,7 @@ export const mockObservatoryContent: ObservatoryContent = {
       {
         title: 'Périmètre',
         description:
-          'Les visualisations publiées couvrent la France métropolitaine et la Corse, avec des indicateurs issus des sources publiques consolidées dans le projet.',
+          "Les visualisations publiées couvrent la France hexagonale et la Corse, avec des indicateurs issus des sources publiques consolidées dans le projet.",
       },
       {
         title: 'Lecture',

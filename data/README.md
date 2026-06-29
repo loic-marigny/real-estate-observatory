@@ -298,7 +298,7 @@ The home-page income trend no longer uses the commune-derived FiLoSoFi aggregati
 
 It now relies on `public/data/filosofi_national_series.json`:
 
-- `2018`, `2019`, `2020`, `2021` and `2023` come from the official published INSEE national metropolitan FiLoSoFi dissemination files;
+- `2018`, `2019`, `2020`, `2021` and `2023` come from the official published INSEE national FiLoSoFi dissemination files for France hexagonale;
 - `2022` is absent because no FiLoSoFi 2022 vintage was published by INSEE;
 - `2017` is intentionally excluded because the current historical source set does not expose a matching public national supra series aligned with the later official files.
 

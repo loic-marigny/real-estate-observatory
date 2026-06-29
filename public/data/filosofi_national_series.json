@@ -1,9 +1,9 @@
 {
   "source": "INSEE FiLoSoFi national series",
   "generated_at": "2026-06-28T00:00:00Z",
-  "geographic_coverage": "France métropolitaine",
+  "geographic_coverage": "France hexagonale",
   "notes": [
-    "2018-2021 and 2023 use official INSEE national metropolitan values extracted from the published FiLoSoFi dissemination files.",
+    "2018-2021 and 2023 use official INSEE national values for France hexagonale extracted from the published FiLoSoFi dissemination files.",
     "2022 is absent because FiLoSoFi 2022 was not published by INSEE."
   ],
   "series": [
