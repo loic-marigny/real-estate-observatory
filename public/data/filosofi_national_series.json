@@ -1,0 +1,51 @@
+{
+  "source": "INSEE FiLoSoFi national series",
+  "generated_at": "2026-06-28T00:00:00Z",
+  "geographic_coverage": "France métropolitaine",
+  "notes": [
+    "2018-2021 and 2023 use official INSEE national metropolitan values extracted from the published FiLoSoFi dissemination files.",
+    "2022 is absent because FiLoSoFi 2022 was not published by INSEE."
+  ],
+  "series": [
+    {
+      "year": 2018,
+      "official": true,
+      "source_type": "insee_disp_metropole",
+      "median_income": 21730,
+      "d1_income": 11500,
+      "d9_income": 39480
+    },
+    {
+      "year": 2019,
+      "official": true,
+      "source_type": "insee_disp_metropole",
+      "median_income": 21930,
+      "d1_income": 11620,
+      "d9_income": 39600
+    },
+    {
+      "year": 2020,
+      "official": true,
+      "source_type": "insee_disp_metropole",
+      "median_income": 22400,
+      "d1_income": 11910,
+      "d9_income": 39920
+    },
+    {
+      "year": 2021,
+      "official": true,
+      "source_type": "insee_disp_metropole",
+      "median_income": 23080,
+      "d1_income": 12080,
+      "d9_income": 41230
+    },
+    {
+      "year": 2023,
+      "official": true,
+      "source_type": "insee_filosofi2_france_metropolitaine",
+      "median_income": 25920,
+      "d1_income": 13200,
+      "d9_income": 46500
+    }
+  ]
+}

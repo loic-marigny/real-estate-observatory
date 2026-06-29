@@ -441,6 +441,14 @@
   flex-wrap: wrap;
 }
 
+.filosofi-year-control__tick {
+  color: inherit;
+}
+
+.filosofi-year-control__tick--missing {
+  color: rgba(13, 43, 64, 0.38);
+}
+
 .mini-stat-card {
   display: flex;
   flex-direction: column;
@@ -469,6 +477,13 @@
   flex-direction: column;
   gap: 6px;
   font-size: 1.05rem;
+}
+
+.mini-stat-card__note {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
 }
 
 .data-explorer-layout {
@@ -1009,12 +1024,28 @@
 .source-pill {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   padding: 10px 14px;
   border-radius: 999px;
   background: var(--color-surface-strong);
   border: 1px solid var(--color-border);
   color: var(--color-text);
   font-size: 0.95rem;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.source-pill:hover,
+.source-pill:focus-visible {
+  border-color: rgba(13, 43, 64, 0.18);
+  background: rgba(255, 255, 255, 0.98);
+  outline: none;
+  transform: translateY(-1px);
 }
 
 .pipeline-flow {

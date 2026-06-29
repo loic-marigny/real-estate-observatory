@@ -38,6 +38,18 @@ const formatPercentage = (value: number): string =>
     maximumFractionDigits: 1,
   }).format(value)} %`
 
+const buildSequentialYears = (years: number[]): number[] => {
+  if (years.length === 0) {
+    return []
+  }
+
+  const sortedYears = [...years].sort((left, right) => left - right)
+  const firstYear = sortedYears[0]
+  const lastYear = sortedYears[sortedYears.length - 1]
+
+  return Array.from({ length: lastYear - firstYear + 1 }, (_, index) => firstYear + index)
+}
+
 const buildMetricsFromDvfSummary = (summary: DvfSummary): Metric[] => [
   {
     id: 'median-price',
@@ -46,7 +58,7 @@ const buildMetricsFromDvfSummary = (summary: DvfSummary): Metric[] => [
       summary.medianPricePerSquareMeter !== null
         ? formatCurrencyPerSquareMeter(summary.medianPricePerSquareMeter)
         : 'N/A',
-    trend: 'DVF chargé',
+    trend: '',
     description:
       'Calculé sur les ventes résidentielles filtrées dans le fichier DVF local.',
   },
@@ -54,28 +66,35 @@ const buildMetricsFromDvfSummary = (summary: DvfSummary): Metric[] => [
     id: 'transactions',
     label: 'Ventes résidentielles',
     value: formatInteger(summary.totalSalesCount),
-    trend: 'DVF chargé',
+    trend: '',
     description:
       'Nombre total de mutations conservées après filtrage des ventes résidentielles.',
   },
   {
     id: 'median-surface',
     label: 'Surface médiane',
-    value:
-      summary.medianSurface !== null ? formatSurface(summary.medianSurface) : 'N/A',
-    trend: 'DVF chargé',
+    value: summary.medianSurface !== null ? formatSurface(summary.medianSurface) : 'N/A',
+    trend: '',
     description:
-      'Surface bâtie médiane des ventes résidentielles retenues dans l’échantillon.',
+      "Surface bâtie médiane des ventes résidentielles retenues dans l'échantillon.",
   },
   {
     id: 'departments-covered',
     label: 'Départements couverts',
     value: formatInteger(summary.departments.length),
-    trend: 'DVF chargé',
+    trend: '',
     description:
       'Nombre de départements présents dans le résumé local généré à partir de DVF.',
   },
 ]
+
+const getMissingFilosofiMessage = (year: number | null): string => {
+  if (year === 2022) {
+    return "Les données manquent car aucun millésime FiLoSoFi n'a été publié pour 2022 : FiLoSoFi 1 s'arrête en 2021 et FiLoSoFi 2 commence en 2023."
+  }
+
+  return "Aucune donnée FiLoSoFi publiée n'est disponible pour cette année."
+}
 
 export function Home({
   hero,
@@ -124,9 +143,7 @@ export function Home({
           setDvfSummary(null)
           setDisplayMetrics(null)
           setDvfMetricsError(
-            error instanceof Error
-              ? error.message
-              : 'Impossible de charger le résumé DVF.',
+            error instanceof Error ? error.message : 'Impossible de charger le résumé DVF.',
           )
           setIsDvfMetricsLoading(false)
         })
@@ -150,10 +167,7 @@ export function Home({
       try {
         const summaries = await getFilosofiSummaries()
         const availableYears = [...summaries.availableYears].sort((left, right) => left - right)
-        const latestYear =
-          summaries.latestYear ??
-          availableYears[availableYears.length - 1] ??
-          null
+        const latestYear = summaries.latestYear ?? availableYears[availableYears.length - 1] ?? null
 
         if (!isMounted) {
           return
@@ -193,20 +207,27 @@ export function Home({
   const availableFilosofiYears = [...(filosofiSummaries?.availableYears ?? [])].sort(
     (left, right) => left - right,
   )
+  const filosofiYearOptions = buildSequentialYears(availableFilosofiYears)
   const selectedFilosofiYearIndex =
     selectedFilosofiYear !== null
-      ? availableFilosofiYears.findIndex((year) => year === selectedFilosofiYear)
+      ? filosofiYearOptions.findIndex((year) => year === selectedFilosofiYear)
       : -1
   const selectedFilosofiSummary: FilosofiSummary | null =
     selectedFilosofiYear !== null
       ? (filosofiSummaries?.summariesByYear[String(selectedFilosofiYear)] ?? null)
       : null
+  const isSelectedFilosofiYearMissing =
+    selectedFilosofiYear !== null &&
+    filosofiYearOptions.includes(selectedFilosofiYear) &&
+    !availableFilosofiYears.includes(selectedFilosofiYear)
+  const missingFilosofiMessage = getMissingFilosofiMessage(selectedFilosofiYear)
 
   const handleFilosofiYearChange = (nextIndex: number) => {
-    const nextYear = availableFilosofiYears[nextIndex]
+    const nextYear = filosofiYearOptions[nextIndex]
     if (nextYear === undefined) {
       return
     }
+
     setSelectedFilosofiYear(nextYear)
   }
 
@@ -223,7 +244,7 @@ export function Home({
       <section className="metrics-section" aria-labelledby="metrics-title">
         <div className="section-heading">
           <p className="eyebrow">Indicateurs clés</p>
-          <h2 id="metrics-title">Vue d’ensemble</h2>
+          <h2 id="metrics-title">Vue d'ensemble</h2>
         </div>
 
         {isDvfMetricsLoading ? (
@@ -253,35 +274,44 @@ export function Home({
           <p className="panel__footnote">Impossible de charger les résumés FiLoSoFi.</p>
           <p className="panel__footnote">{filosofiError}</p>
         </section>
-      ) : selectedFilosofiSummary ? (
+      ) : selectedFilosofiYear !== null ? (
         <section className="panel panel--compact" aria-labelledby="filosofi-title">
           <div className="section-heading">
             <p className="eyebrow">FiLoSoFi</p>
             <h2 id="filosofi-title">Revenus localisés</h2>
           </div>
-          {availableFilosofiYears.length > 0 ? (
+          {filosofiYearOptions.length > 0 ? (
             <div className="filosofi-year-control">
               <div className="filosofi-year-control__header">
                 <span className="filosofi-year-control__label">Année affichée</span>
                 <strong className="filosofi-year-control__value">
-                  {selectedFilosofiYear ?? 'N/A'}
+                  {selectedFilosofiYear}
                 </strong>
               </div>
               <input
                 className="filosofi-year-control__range"
                 type="range"
                 min={0}
-                max={Math.max(availableFilosofiYears.length - 1, 0)}
+                max={Math.max(filosofiYearOptions.length - 1, 0)}
                 step={1}
                 value={Math.max(selectedFilosofiYearIndex, 0)}
                 onChange={(event) =>
                   handleFilosofiYearChange(Number(event.currentTarget.value))
                 }
-                aria-label="Sélectionner l’année FiLoSoFi"
+                aria-label="Sélectionner l'année FiLoSoFi"
               />
               <div className="filosofi-year-control__ticks" aria-hidden="true">
-                {availableFilosofiYears.map((year) => (
-                  <span key={year}>{year}</span>
+                {filosofiYearOptions.map((year) => (
+                  <span
+                    key={year}
+                    className={
+                      availableFilosofiYears.includes(year)
+                        ? 'filosofi-year-control__tick'
+                        : 'filosofi-year-control__tick filosofi-year-control__tick--missing'
+                    }
+                  >
+                    {year}
+                  </span>
                 ))}
               </div>
             </div>
@@ -290,55 +320,82 @@ export function Home({
             <article className="mini-stat-card">
               <span className="mini-stat-card__label">Départements couverts</span>
               <strong className="mini-stat-card__value">
-                {formatInteger(selectedFilosofiSummary.departmentsCovered)}
+                {selectedFilosofiSummary
+                  ? formatInteger(selectedFilosofiSummary.departmentsCovered)
+                  : 'Non disponible'}
               </strong>
+              {isSelectedFilosofiYearMissing ? (
+                <p className="mini-stat-card__note">{missingFilosofiMessage}</p>
+              ) : null}
             </article>
             <article className="mini-stat-card">
               <span className="mini-stat-card__label">Communes couvertes</span>
               <strong className="mini-stat-card__value">
-                {formatInteger(selectedFilosofiSummary.communesCovered)}
+                {selectedFilosofiSummary
+                  ? formatInteger(selectedFilosofiSummary.communesCovered)
+                  : 'Non disponible'}
               </strong>
+              {isSelectedFilosofiYearMissing ? (
+                <p className="mini-stat-card__note">
+                  Impossible d'afficher une couverture communale sans millésime publié.
+                </p>
+              ) : null}
             </article>
             <article className="mini-stat-card">
               <span className="mini-stat-card__label">Revenu médian national</span>
               <strong className="mini-stat-card__value">
-                {selectedFilosofiSummary.nationalMedianIncome !== null
+                {selectedFilosofiSummary?.nationalMedianIncome !== null &&
+                selectedFilosofiSummary?.nationalMedianIncome !== undefined
                   ? formatEuro(selectedFilosofiSummary.nationalMedianIncome)
-                  : 'N/A'}
+                  : 'Non disponible'}
               </strong>
+              {isSelectedFilosofiYearMissing ? (
+                <p className="mini-stat-card__note">
+                  Aucun revenu médian officiel n'est exploitable pour cette année.
+                </p>
+              ) : null}
             </article>
             <article className="mini-stat-card">
               <span className="mini-stat-card__label">Repères D1 / Médiane / D9</span>
               <strong className="mini-stat-card__value mini-stat-card__value--stacked">
                 <span>
                   D1{' '}
-                  {selectedFilosofiSummary.decileSummary?.d1Income !== null &&
-                  selectedFilosofiSummary.decileSummary?.d1Income !== undefined
+                  {selectedFilosofiSummary?.decileSummary?.d1Income !== null &&
+                  selectedFilosofiSummary?.decileSummary?.d1Income !== undefined
                     ? formatEuro(selectedFilosofiSummary.decileSummary.d1Income)
-                    : 'N/A'}
+                    : 'Non disponible'}
                 </span>
                 <span>
                   Médiane{' '}
-                  {selectedFilosofiSummary.nationalMedianIncome !== null
+                  {selectedFilosofiSummary?.nationalMedianIncome !== null &&
+                  selectedFilosofiSummary?.nationalMedianIncome !== undefined
                     ? formatEuro(selectedFilosofiSummary.nationalMedianIncome)
-                    : 'N/A'}
+                    : 'Non disponible'}
                 </span>
                 <span>
                   D9{' '}
-                  {selectedFilosofiSummary.decileSummary?.d9Income !== null &&
-                  selectedFilosofiSummary.decileSummary?.d9Income !== undefined
+                  {selectedFilosofiSummary?.decileSummary?.d9Income !== null &&
+                  selectedFilosofiSummary?.decileSummary?.d9Income !== undefined
                     ? formatEuro(selectedFilosofiSummary.decileSummary.d9Income)
-                    : 'N/A'}
+                    : 'Non disponible'}
                 </span>
               </strong>
+              {isSelectedFilosofiYearMissing ? (
+                <p className="mini-stat-card__note">
+                  Les repères de distribution ne peuvent pas être calculés sans publication
+                  source.
+                </p>
+              ) : null}
             </article>
           </div>
-          {selectedFilosofiSummary.povertyRateSummary?.mean !== null &&
-          selectedFilosofiSummary.povertyRateSummary?.mean !== undefined ? (
+          {selectedFilosofiSummary?.povertyRateSummary?.mean !== null &&
+          selectedFilosofiSummary?.povertyRateSummary?.mean !== undefined ? (
             <p className="panel__footnote">
               Taux de pauvreté moyen disponible pour {selectedFilosofiYear} :{' '}
               {formatPercentage(selectedFilosofiSummary.povertyRateSummary.mean)}.
             </p>
+          ) : isSelectedFilosofiYearMissing ? (
+            <p className="panel__footnote">{missingFilosofiMessage}</p>
           ) : null}
         </section>
       ) : null}
@@ -370,9 +427,15 @@ export function Home({
 
         <div className="sources-list">
           {sources.map((source) => (
-            <span key={source.id} className="source-pill">
+            <a
+              key={source.id}
+              className="source-pill"
+              href={source.href}
+              target="_blank"
+              rel="noreferrer"
+            >
               {source.label}
-            </span>
+            </a>
           ))}
         </div>
       </section>

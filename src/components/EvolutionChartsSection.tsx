@@ -1,9 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
-import {
-  FILOSOFI_TREND_INDICATORS,
-  queryFilosofiTrend,
-} from '../services/filosofiDataService'
+import { queryFilosofiNationalTrend } from '../services/filosofiNationalSeriesService'
 import { queryDvfTrend } from '../services/dvfService'
 import type {
   DvfTrendResult,
@@ -124,7 +121,7 @@ const buildCombinedChartOptions = (
         type: 'line',
         yAxisIndex: 0,
         smooth: true,
-        connectNulls: series.indicator === 'median_income',
+        connectNulls: true,
         emphasis: { focus: 'series' },
         lineStyle: {
           color: INDICATOR_COLORS[series.indicator],
@@ -248,14 +245,7 @@ export default function EvolutionChartsSection({
   useEffect(() => {
     let active = true
 
-    Promise.allSettled([
-      queryFilosofiTrend({
-        geographyLevel: 'commune',
-        departmentSource: 'official',
-        indicators: FILOSOFI_TREND_INDICATORS,
-      }),
-      queryDvfTrend(),
-    ])
+    Promise.allSettled([queryFilosofiNationalTrend(), queryDvfTrend()])
       .then(([filosofiResult, dvfData]) => {
         if (!active) {
           return
@@ -380,7 +370,7 @@ export default function EvolutionChartsSection({
           </div>
 
           <p className="panel__footnote panel__footnote--compact">
-            FiLoSoFi : {trendResult?.availableYears.join(', ') ?? 'indisponible'}. DVF :{' '}
+            Revenus : série nationale Insee, France métropolitaine. DVF :{' '}
             {dvfResult?.availableYears.join(', ') ?? 'indisponible'}.
           </p>
         </div>

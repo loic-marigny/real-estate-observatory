@@ -9,9 +9,8 @@ vi.mock('echarts-for-react', () => ({
   default: () => <div data-testid="echarts" />,
 }))
 
-vi.mock('../services/filosofiDataService', () => ({
-  queryFilosofiTrend: vi.fn(),
-  FILOSOFI_TREND_INDICATORS: ['median_income', 'd1_income', 'd9_income'],
+vi.mock('../services/filosofiNationalSeriesService', () => ({
+  queryFilosofiNationalTrend: vi.fn(),
 }))
 
 vi.mock('../services/dvfService', () => ({
@@ -19,10 +18,10 @@ vi.mock('../services/dvfService', () => ({
 }))
 
 import EvolutionChartsSection from './EvolutionChartsSection'
-import { queryFilosofiTrend } from '../services/filosofiDataService'
+import { queryFilosofiNationalTrend } from '../services/filosofiNationalSeriesService'
 import { queryDvfTrend } from '../services/dvfService'
 
-const mockQueryFilosofiTrend = vi.mocked(queryFilosofiTrend)
+const mockQueryFilosofiNationalTrend = vi.mocked(queryFilosofiNationalTrend)
 const mockQueryDvfTrend = vi.mocked(queryDvfTrend)
 
 describe('EvolutionChartsSection', () => {
@@ -31,9 +30,9 @@ describe('EvolutionChartsSection', () => {
     cleanup()
   })
 
-  it('renders one combined chart for FiLoSoFi and DVF', async () => {
-    mockQueryFilosofiTrend.mockResolvedValue({
-      availableYears: [2017, 2018, 2023],
+  it('renders one combined chart for official FiLoSoFi national series and DVF', async () => {
+    mockQueryFilosofiNationalTrend.mockResolvedValue({
+      availableYears: [2018, 2023],
       geographyLevel: 'commune',
       departmentSource: 'official',
       series: [
@@ -41,7 +40,6 @@ describe('EvolutionChartsSection', () => {
           indicator: 'median_income',
           label: 'Revenu médian',
           points: [
-            { year: 2017, value: 21000 },
             { year: 2018, value: 22000 },
             { year: 2023, value: 24000 },
           ],
@@ -50,7 +48,6 @@ describe('EvolutionChartsSection', () => {
           indicator: 'd1_income',
           label: 'Décile D1 (10% plus pauvres)',
           points: [
-            { year: 2017, value: 10000 },
             { year: 2018, value: 10500 },
             { year: 2023, value: 11000 },
           ],
@@ -59,7 +56,6 @@ describe('EvolutionChartsSection', () => {
           indicator: 'd9_income',
           label: 'Décile D9 (10% plus riches)',
           points: [
-            { year: 2017, value: 50000 },
             { year: 2018, value: 52000 },
             { year: 2023, value: 55000 },
           ],
@@ -95,11 +91,14 @@ describe('EvolutionChartsSection', () => {
 
     expect(screen.getByText('Revenu médian')).toBeTruthy()
     expect(screen.getByText('Prix médian au m²')).toBeTruthy()
+    expect(
+      screen.getByText(/Revenus : série nationale Insee, France métropolitaine/i),
+    ).toBeTruthy()
     expect(screen.getAllByTestId('echarts').length).toBe(1)
   })
 
   it('keeps one combined chart visible when FiLoSoFi loading fails', async () => {
-    mockQueryFilosofiTrend.mockRejectedValue(new Error('FiLoSoFi unavailable'))
+    mockQueryFilosofiNationalTrend.mockRejectedValue(new Error('FiLoSoFi unavailable'))
     mockQueryDvfTrend.mockResolvedValue({
       availableYears: [2023, 2024],
       points: [

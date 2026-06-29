@@ -27,6 +27,7 @@ export type Metric = {
 export type SourceReference = {
   id: string
   label: string
+  href: string
 }
 
 export type HeroBlock = {

@@ -10,7 +10,7 @@ export function MetricCard({ metric }: MetricCardProps) {
       <p className="metric-card__label">{metric.label}</p>
       <div className="metric-card__header">
         <strong className="metric-card__value">{metric.value}</strong>
-        <span className="metric-card__trend">{metric.trend}</span>
+        {metric.trend ? <span className="metric-card__trend">{metric.trend}</span> : null}
       </div>
       <p className="metric-card__description">{metric.description}</p>
     </article>

@@ -23,7 +23,7 @@ export const mockObservatoryContent: ObservatoryContent = {
         value: 'Erreur',
         trend: 'Échantillon',
         description:
-          'Nombre de ventes utilisé comme valeur de repli côté interface.',
+          "Nombre de ventes utilisé comme valeur de repli côté interface.",
       },
       {
         id: 'median-surface',
@@ -53,11 +53,16 @@ export const mockObservatoryContent: ObservatoryContent = {
       description: 'Visualisation de tendance à intégrer',
     },
     sources: [
-      { id: 'dvf', label: 'DVF / Etalab' },
-      { id: 'insee-filosofi', label: 'INSEE FiLoSoFi' },
-      { id: 'ademe-dpe', label: 'ADEME DPE' },
-      { id: 'banque-de-france', label: 'Banque de France' },
-      { id: 'sdes-sitadel', label: 'SDES Sitadel' },
+      {
+        id: 'dvf',
+        label: 'DVF / Etalab',
+        href: 'https://www.data.gouv.fr/fr/datasets/demandes-de-valeurs-foncieres/',
+      },
+      {
+        id: 'insee-filosofi',
+        label: 'INSEE FiLoSoFi',
+        href: 'https://www.insee.fr/fr/statistiques/8984752',
+      },
     ],
   },
   statistics: {
@@ -65,18 +70,18 @@ export const mockObservatoryContent: ObservatoryContent = {
       eyebrow: 'Statistiques',
       title: 'Statistiques du marché immobilier',
       description:
-        'Cette page accueillera les filtres géographiques, les comparaisons par territoire et les visualisations détaillées.',
+        "Cette page présente les principaux visuels publics de l'observatoire pour suivre les écarts territoriaux et les tendances de long terme.",
     },
     sections: [
       {
-        title: 'Filtres à venir',
+        title: 'Périmètre',
         description:
-          'Sélection par région, département, commune, période et type de bien.',
+          'Les visualisations publiées couvrent la France métropolitaine et la Corse, avec des indicateurs issus des sources publiques consolidées dans le projet.',
       },
       {
-        title: 'Visualisations prévues',
+        title: 'Lecture',
         description:
-          'Cartes choroplèthes, séries temporelles, distributions de prix et tableaux comparatifs.',
+          "Les prix proviennent des transactions DVF filtrées sur le résidentiel ; les revenus reposent sur les millésimes FiLoSoFi publiés par l'Insee.",
       },
     ],
   },
@@ -85,7 +90,7 @@ export const mockObservatoryContent: ObservatoryContent = {
       eyebrow: 'Méthodologie',
       title: 'Construction des indicateurs',
       description:
-        'Les premières versions s’appuieront sur un socle de jeux de données ouverts couvrant transactions, revenus, performance énergétique, crédit et construction neuve.',
+        "Les premières versions s'appuieront sur un socle de jeux de données ouverts couvrant transactions, revenus, performance énergétique, crédit et construction neuve.",
     },
     sources: [
       {
@@ -107,7 +112,7 @@ export const mockObservatoryContent: ObservatoryContent = {
         category: 'Énergie',
         name: 'ADEME DPE',
         description:
-          'Diagnostics de performance énergétique pour enrichir l’analyse sur la qualité énergétique du parc résidentiel.',
+          "Diagnostics de performance énergétique pour enrichir l'analyse sur la qualité énergétique du parc résidentiel.",
       },
       {
         id: 'credit',
@@ -121,16 +126,16 @@ export const mockObservatoryContent: ObservatoryContent = {
         category: 'Offre neuve',
         name: 'SDES Sitadel',
         description:
-          'Permis de construire et mises en chantier pour suivre la production neuve et la pression sur l’offre future.',
+          "Permis de construire et mises en chantier pour suivre la production neuve et la pression sur l'offre future.",
       },
     ],
   },
   pipeline: {
     hero: {
       eyebrow: 'Pipeline',
-      title: 'Préparer l’intégration des données',
+      title: "Préparer l'intégration des données",
       description:
-        'Le tableau de bord sera alimenté par une chaîne simple et traçable, de l’open data brut jusqu’aux indicateurs servis à l’interface.',
+        "Le tableau de bord sera alimenté par une chaîne simple et traçable, de l'open data brut jusqu'aux indicateurs servis à l'interface.",
     },
     steps: [
       {
@@ -149,19 +154,19 @@ export const mockObservatoryContent: ObservatoryContent = {
         id: 'indicators',
         title: 'Indicators',
         description:
-          'Calcul des séries, agrégats territoriaux et métriques produits pour l’observatoire.',
+          "Calcul des séries, agrégats territoriaux et métriques produits pour l'observatoire.",
       },
       {
         id: 'api',
         title: 'API',
         description:
-          'Exposition d’un contrat de données stable pour les pages publiques et les futurs filtres interactifs.',
+          "Exposition d'un contrat de données stable pour les pages publiques et les futurs filtres interactifs.",
       },
       {
         id: 'dashboard',
         title: 'Dashboard',
         description:
-          'Consommation des indicateurs par l’interface React pour l’exploration et la communication publique.',
+          "Consommation des indicateurs par l'interface React pour l'exploration et la communication publique.",
       },
     ],
   },
