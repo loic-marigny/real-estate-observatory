@@ -728,53 +728,101 @@
 }
 
 .data-table__header {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  min-width: 0;
 }
 
 .data-table__header-label {
+  position: relative;
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   font-weight: 700;
 }
 
-.data-table__sort-actions {
-  display: flex;
-  gap: 8px;
+.data-table__header-label::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 26px;
+  height: 100%;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(250, 247, 242, 0), rgba(250, 247, 242, 0.98));
 }
 
-.data-table__sort-button {
-  min-width: 34px;
-  min-height: 34px;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--color-text);
+.data-table__header--static {
+  display: block;
+}
+
+.data-table__sort-trigger {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
   font: inherit;
+  text-align: left;
   cursor: pointer;
   transition:
-    border-color 160ms ease,
-    background-color 160ms ease,
+    color 160ms ease,
     transform 160ms ease;
 }
 
-.data-table__sort-button:hover,
-.data-table__sort-button:focus-visible {
-  border-color: rgba(13, 43, 64, 0.18);
-  background: rgba(255, 255, 255, 1);
+.data-table__sort-trigger:hover,
+.data-table__sort-trigger:focus-visible {
   outline: none;
+  color: var(--color-accent);
   transform: translateY(-1px);
 }
 
-.data-table__sort-button--active {
-  border-color: rgba(198, 96, 55, 0.34);
-  background: rgba(198, 96, 55, 0.12);
+.data-table__sort-trigger--active {
   color: var(--color-accent);
 }
 
-.data-table__numeric-filter {
+.data-table__sort-icon {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+.data-table__filter-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
+
+.data-table__filter-grid--range {
+  grid-template-columns: 1fr 1fr;
+}
+
+.data-table__filter-field {
+  position: relative;
+}
+
+.data-table__filter-field::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  width: 14px;
+  height: 14px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  opacity: 0.66;
+  background-color: var(--color-muted);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M3 5h18l-7 8v5l-4 2v-7z'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  mask: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M3 5h18l-7 8v5l-4 2v-7z'/%3E%3C/svg%3E\")
+    center / contain no-repeat;
+}
+
+.data-table__filter-input--with-icon {
+  padding-left: 34px;
 }
 
 .data-table-footer {
@@ -1213,7 +1261,7 @@
 
   .dataset-selector,
   .dataset-info-card__grid,
-  .data-table__numeric-filter,
+  .data-table__filter-grid--range,
   .filosofi-query-controls {
     grid-template-columns: 1fr;
   }

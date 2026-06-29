@@ -7,10 +7,20 @@ import { dvfAssetUrls } from './dataAssetConfig'
 import { duckdbClient } from './duckdbClient'
 import { formatPreviewLabel, normalizePreviewValue } from '../utils/text'
 
+export type DatasetColumnType = 'text' | 'number' | 'date' | 'boolean'
+
+export type DatasetColumnFilterKind =
+  | 'text'
+  | 'number-range'
+  | 'date-range'
+  | 'boolean-select'
+
 export type DatasetColumn = {
   key: string
   label: string
-  type: 'text' | 'number'
+  type: DatasetColumnType
+  description?: string | null
+  filterKind?: DatasetColumnFilterKind
 }
 
 export type DatasetPreviewResponse = {
@@ -58,8 +68,30 @@ const asNumberArray = (value: unknown): number[] =>
         .filter((item) => Number.isFinite(item))
     : []
 
-const normalizeColumnType = (value: unknown): 'text' | 'number' =>
-  value === 'number' ? 'number' : 'text'
+const normalizeColumnType = (value: unknown): DatasetColumnType => {
+  switch (value) {
+    case 'number':
+    case 'date':
+    case 'boolean':
+      return value
+    default:
+      return 'text'
+  }
+}
+
+const normalizeColumnFilterKind = (
+  value: unknown,
+): DatasetColumnFilterKind | undefined => {
+  switch (value) {
+    case 'text':
+    case 'number-range':
+    case 'date-range':
+    case 'boolean-select':
+      return value
+    default:
+      return undefined
+  }
+}
 
 const normalizeRecord = (
   record: Record<string, unknown>,
@@ -105,6 +137,9 @@ const normalizePreviewPayload = (payload: unknown): DatasetPreviewResponse => {
               typeof item.label === 'string' ? item.label : '',
             ),
             type: normalizeColumnType(item.type),
+            description:
+              typeof item.description === 'string' ? item.description : null,
+            filterKind: normalizeColumnFilterKind(item.filterKind),
           }))
           .filter((item) => item.key !== '')
       : [],
