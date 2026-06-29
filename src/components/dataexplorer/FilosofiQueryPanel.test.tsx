@@ -6,7 +6,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { FilosofiQueryPanel } from './FilosofiQueryPanel'
 
 describe('FilosofiQueryPanel', () => {
-  it('renders controls without the results table and exposes warnings', () => {
+  it('renders controls without the results table and hides the sort filter', () => {
     const onYearChange = vi.fn()
 
     render(
@@ -31,15 +31,13 @@ describe('FilosofiQueryPanel', () => {
         ]}
         selectedIndicator="median_income"
         onIndicatorChange={vi.fn()}
-        sortBy="median_income"
-        sortDirection="desc"
-        onSortChange={vi.fn()}
         warnings={['Test warning']}
       />,
     )
 
     expect(screen.getByText('Année')).toBeTruthy()
     expect(screen.getByText('Indicateur')).toBeTruthy()
+    expect(screen.queryByText('Tri')).toBeNull()
     expect(screen.getByText('Test warning')).toBeTruthy()
     expect(screen.queryByText(/Requête exécutée sur/i)).toBeNull()
 

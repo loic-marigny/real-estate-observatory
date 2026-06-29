@@ -17,9 +17,6 @@ type FilosofiQueryPanelProps = {
   indicators: FilosofiIndicatorOption[]
   selectedIndicator: FilosofiIndicator | null
   onIndicatorChange: (indicator: FilosofiIndicator) => void
-  sortBy: string
-  sortDirection: 'asc' | 'desc'
-  onSortChange: (sortBy: string, sortDirection: 'asc' | 'desc') => void
   warnings: string[]
 }
 
@@ -34,14 +31,10 @@ export function FilosofiQueryPanel({
   indicators,
   selectedIndicator,
   onIndicatorChange,
-  sortBy,
-  sortDirection,
-  onSortChange,
   warnings,
 }: FilosofiQueryPanelProps) {
   const hasYears = years.length > 0
   const hasIndicators = indicators.length > 0
-  const canQuery = selectedYear !== null && selectedIndicator !== null
 
   return (
     <section className="panel data-explorer-year-panel filosofi-query-panel">
@@ -90,33 +83,14 @@ export function FilosofiQueryPanel({
           disabled={!hasIndicators}
           onChange={(value) => onIndicatorChange(value as FilosofiIndicator)}
         >
-          {!hasIndicators ? <option value="">Aucun indicateur disponible</option> : null}
+          {!hasIndicators ? (
+            <option value="">Aucun indicateur disponible</option>
+          ) : null}
           {indicators.map((indicator) => (
             <option key={indicator.indicator} value={indicator.indicator}>
               {indicator.label}
             </option>
           ))}
-        </SelectField>
-
-        <SelectField
-          label="Tri"
-          value={`${sortBy}:${sortDirection}`}
-          disabled={!canQuery}
-          onChange={(value) => {
-            const [nextSortBy, nextDirection] = value.split(':')
-            onSortChange(nextSortBy, nextDirection as 'asc' | 'desc')
-          }}
-        >
-          <option value={`${selectedIndicator ?? 'median_income'}:desc`}>
-            Valeur décroissante
-          </option>
-          <option value={`${selectedIndicator ?? 'median_income'}:asc`}>
-            Valeur croissante
-          </option>
-          <option value="geography_name:asc">Libellé A → Z</option>
-          <option value="geography_name:desc">Libellé Z → A</option>
-          <option value="geography_code:asc">Code croissant</option>
-          <option value="geography_code:desc">Code décroissant</option>
         </SelectField>
       </div>
 

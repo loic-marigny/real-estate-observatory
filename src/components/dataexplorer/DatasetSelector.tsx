@@ -1,5 +1,5 @@
-import type { DatasetDescriptor } from '../../services/dataExplorerService'
 import type { BusinessDatasetId } from '../../data/datasetRegistry'
+import type { DatasetDescriptor } from '../../services/dataExplorerService'
 
 type DatasetSelectorProps = {
   datasets: DatasetDescriptor[]
@@ -27,9 +27,7 @@ export function DatasetSelector({
         >
           <span className="dataset-selector__label">{dataset.label}</span>
           <span className="dataset-selector__meta">
-            {dataset.availableYears.length
-              ? `${dataset.availableYears.at(-1)} · ${dataset.rows ?? '—'} lignes`
-              : 'Aperçu indisponible'}
+            {dataset.rows !== null ? `${dataset.rows} lignes` : 'Aperçu indisponible'}
           </span>
         </button>
       ))}

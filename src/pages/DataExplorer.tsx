@@ -63,10 +63,7 @@ export function DataExplorer() {
     setPage,
     pageSize,
     setPageSize,
-    sortBy,
     setSortBy,
-    sortDirection,
-    setSortDirection,
     result: filosofiResult,
     warnings: filosofiWarnings,
     error: filosofiError,
@@ -149,14 +146,6 @@ export function DataExplorer() {
               onIndicatorChange={(indicator) => {
                 setSelectedIndicator(indicator)
                 setSortBy(indicator)
-                setSortDirection('desc')
-                setPage(1)
-              }}
-              sortBy={sortBy}
-              sortDirection={sortDirection}
-              onSortChange={(nextSortBy, nextDirection) => {
-                setSortBy(nextSortBy)
-                setSortDirection(nextDirection)
                 setPage(1)
               }}
               warnings={filosofiWarnings}
