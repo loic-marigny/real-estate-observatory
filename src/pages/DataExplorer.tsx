@@ -1,8 +1,11 @@
 import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { DataTable } from '../components/dataexplorer/DataTable'
+import { CustomSelectField } from '../components/dataexplorer/CustomSelectField'
 import { DatasetInfoCard } from '../components/dataexplorer/DatasetInfoCard'
 import { DatasetSelector } from '../components/dataexplorer/DatasetSelector'
 import { FilosofiQueryPanel } from '../components/dataexplorer/FilosofiQueryPanel'
+import { FilosofiResultsTable } from '../components/dataexplorer/FilosofiResultsTable'
+import { StatusPanel } from '../components/dataexplorer/StatusPanel'
 import type { BusinessDatasetId } from '../data/datasetRegistry'
 import {
   getDatasetPreview,
@@ -48,9 +51,7 @@ export function DataExplorer() {
     useState<FilosofiGeographyLevel>('commune')
   const [departmentSource, setDepartmentSource] =
     useState<FilosofiDepartmentSource>('official')
-  const [indicatorOptions, setIndicatorOptions] = useState<FilosofiIndicatorOption[]>(
-    [],
-  )
+  const [indicatorOptions, setIndicatorOptions] = useState<FilosofiIndicatorOption[]>([])
   const [selectedIndicator, setSelectedIndicator] =
     useState<FilosofiIndicator | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -58,34 +59,13 @@ export function DataExplorer() {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
   const [sortBy, setSortBy] = useState('geography_name')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
-  const [filosofiResult, setFilosofiResult] = useState<FilosofiQueryResult | null>(
-    null,
-  )
+  const [filosofiResult, setFilosofiResult] = useState<FilosofiQueryResult | null>(null)
   const [filosofiWarnings, setFilosofiWarnings] = useState<string[]>([])
   const [filosofiError, setFilosofiError] = useState<string | null>(null)
   const [isFilosofiLoading, setIsFilosofiLoading] = useState(false)
   const requestSequenceRef = useRef(0)
-  const dvfYearMenuRef = useRef<HTMLDivElement | null>(null)
 
   const deferredSearchQuery = useDeferredValue(searchQuery)
-
-  useEffect(() => {
-    const handlePointerDown = (event: MouseEvent) => {
-      if (!dvfYearMenuRef.current) {
-        return
-      }
-
-      if (!dvfYearMenuRef.current.contains(event.target as Node)) {
-        setIsDvfYearMenuOpen(false)
-      }
-    }
-
-    window.addEventListener('mousedown', handlePointerDown)
-
-    return () => {
-      window.removeEventListener('mousedown', handlePointerDown)
-    }
-  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -177,6 +157,7 @@ export function DataExplorer() {
         if (!isMounted) {
           return
         }
+
         void availability
         startTransition(() => {
           setFilosofiYears(years)
@@ -220,6 +201,7 @@ export function DataExplorer() {
         if (!isMounted) {
           return
         }
+
         startTransition(() => {
           setFilosofiError(null)
           setIndicatorOptions(options)
@@ -324,6 +306,17 @@ export function DataExplorer() {
     datasets.find((dataset) => dataset.id === 'dvf')?.availableYears ??
     selectedPreview?.dataset.availableYears ??
     []
+  const dvfYearOptions = useMemo(
+    () =>
+      dvfAvailableYears
+        .slice()
+        .sort((left, right) => right - left)
+        .map((year) => ({
+          label: String(year),
+          value: year,
+        })),
+    [dvfAvailableYears],
+  )
 
   const resultColumns = useMemo<FilosofiResultColumn[]>(() => {
     if (!selectedIndicator) {
@@ -370,118 +363,88 @@ export function DataExplorer() {
         />
 
         {hasFilosofiInterface ? (
-          <FilosofiQueryPanel
-            years={filosofiYears}
-            selectedYear={selectedYear}
-            onYearChange={(year) => {
-              setSelectedYear(year)
-              setPage(1)
-            }}
-            geographyLevel={geographyLevel}
-            onGeographyLevelChange={(level) => {
-              setGeographyLevel(level)
-              setDepartmentSource('official')
-              setPage(1)
-            }}
-            departmentSource={departmentSource}
-            onDepartmentSourceChange={(source) => {
-              setDepartmentSource(source)
-              setPage(1)
-            }}
-            indicators={indicatorOptions}
-            selectedIndicator={selectedIndicator}
-            onIndicatorChange={(indicator) => {
-              setSelectedIndicator(indicator)
-              setSortBy(indicator)
-              setSortDirection('desc')
-              setPage(1)
-            }}
-            search={searchQuery}
-            onSearchChange={(query) => {
-              setSearchQuery(query)
-              setPage(1)
-            }}
-            sortBy={sortBy}
-            sortDirection={sortDirection}
-            onSortChange={(nextSortBy, nextDirection) => {
-              setSortBy(nextSortBy)
-              setSortDirection(nextDirection)
-              setPage(1)
-            }}
-            pageSize={pageSize}
-            page={page}
-            onPageChange={setPage}
-            onPageSizeChange={(size) => {
-              setPageSize(size)
-              setPage(1)
-            }}
-            columns={resultColumns}
-            result={filosofiResult}
-            warnings={filosofiWarnings}
-            isLoading={isFilosofiLoading}
-            error={filosofiError}
-          />
+          <>
+            <FilosofiQueryPanel
+              years={filosofiYears}
+              selectedYear={selectedYear}
+              onYearChange={(year) => {
+                setSelectedYear(year)
+                setPage(1)
+              }}
+              geographyLevel={geographyLevel}
+              onGeographyLevelChange={(level) => {
+                setGeographyLevel(level)
+                setDepartmentSource('official')
+                setPage(1)
+              }}
+              departmentSource={departmentSource}
+              onDepartmentSourceChange={(source) => {
+                setDepartmentSource(source)
+                setPage(1)
+              }}
+              indicators={indicatorOptions}
+              selectedIndicator={selectedIndicator}
+              onIndicatorChange={(indicator) => {
+                setSelectedIndicator(indicator)
+                setSortBy(indicator)
+                setSortDirection('desc')
+                setPage(1)
+              }}
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+              onSortChange={(nextSortBy, nextDirection) => {
+                setSortBy(nextSortBy)
+                setSortDirection(nextDirection)
+                setPage(1)
+              }}
+              warnings={filosofiWarnings}
+            />
+
+            {filosofiError ? <StatusPanel message={filosofiError} /> : null}
+            {isFilosofiLoading ? (
+              <StatusPanel message="Chargement des données FiLoSoFi…" />
+            ) : null}
+            {filosofiResult && selectedIndicator ? (
+              <FilosofiResultsTable
+                search={searchQuery}
+                onSearchChange={(query) => {
+                  setSearchQuery(query)
+                  setPage(1)
+                }}
+                pageSize={pageSize}
+                page={page}
+                onPageChange={setPage}
+                onPageSizeChange={(size) => {
+                  setPageSize(size)
+                  setPage(1)
+                }}
+                columns={resultColumns}
+                result={filosofiResult}
+              />
+            ) : null}
+          </>
         ) : hasDvfInterface ? (
           <>
             <section className="panel data-explorer-year-panel">
-              <div className="page-size-selector" ref={dvfYearMenuRef}>
-                <span className="search-bar__label">Année DVF</span>
-                <button
-                  type="button"
-                  className={`page-size-selector__select page-size-selector__select--custom${
-                    isDvfYearMenuOpen ? ' page-size-selector__select--open' : ''
-                  }`}
-                  onClick={() => setIsDvfYearMenuOpen((current) => !current)}
-                  aria-haspopup="listbox"
-                  aria-expanded={isDvfYearMenuOpen}
-                >
-                  <span>{selectedDvfYear ?? 'Sélectionner'}</span>
-                  <span className="page-size-selector__chevron" aria-hidden="true">
-                    ▾
-                  </span>
-                </button>
-                {isDvfYearMenuOpen ? (
-                  <div className="page-size-selector__menu" role="listbox" aria-label="Année DVF">
-                    {dvfAvailableYears
-                      .slice()
-                      .sort((left, right) => right - left)
-                      .map((year) => (
-                        <button
-                          key={year}
-                          type="button"
-                          role="option"
-                          aria-selected={selectedDvfYear === year}
-                          className={`page-size-selector__option${
-                            selectedDvfYear === year
-                              ? ' page-size-selector__option--selected'
-                              : ''
-                          }`}
-                          onClick={() => {
-                            setSelectedDvfYear(year)
-                            setIsDvfYearMenuOpen(false)
-                          }}
-                        >
-                          {year}
-                        </button>
-                      ))}
-                  </div>
-                ) : null}
-              </div>
+              <CustomSelectField
+                label="Année DVF"
+                value={selectedDvfYear}
+                options={dvfYearOptions}
+                isOpen={isDvfYearMenuOpen}
+                onToggle={() => setIsDvfYearMenuOpen((current) => !current)}
+                onClose={() => setIsDvfYearMenuOpen(false)}
+                onChange={(value) => setSelectedDvfYear(Number(value))}
+              />
               <p className="panel__footnote panel__footnote--compact">
                 Les millésimes DVF historiques peuvent exposer moins de colonnes que
                 les années récentes. L’aperçu s’adapte automatiquement au schéma
                 disponible pour l’année sélectionnée.
               </p>
             </section>
-            {error ? (
-              <section className="panel">
-                <p>{error}</p>
-              </section>
-            ) : null}
+
+            {error ? <StatusPanel message={error} /> : null}
             {isLoading ? (
-              <section className="panel">
-                <p>Chargement de l’aperçu du jeu de données…</p>
-              </section>
+              <StatusPanel message="Chargement de l’aperçu du jeu de données…" />
             ) : null}
             {selectedPreview ? (
               <DataTable columns={selectedPreview.columns} rows={selectedPreview.records} />
@@ -491,16 +454,12 @@ export function DataExplorer() {
           <DataTable columns={selectedPreview.columns} rows={selectedPreview.records} />
         ) : null}
 
-        {!hasDvfInterface && error ? (
-          <section className="panel">
-            <p>{error}</p>
-          </section>
+        {!hasDvfInterface && !hasFilosofiInterface && error ? (
+          <StatusPanel message={error} />
         ) : null}
 
-        {!hasDvfInterface && isLoading ? (
-          <section className="panel">
-            <p>Chargement de l’aperçu du jeu de données…</p>
-          </section>
+        {!hasDvfInterface && !hasFilosofiInterface && isLoading ? (
+          <StatusPanel message="Chargement de l’aperçu du jeu de données…" />
         ) : null}
 
         {selectedDataset ? <DatasetInfoCard dataset={selectedDataset} /> : null}

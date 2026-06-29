@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { DatasetColumn } from '../../services/dataExplorerService'
 import { SearchBar } from './SearchBar'
+import { SelectField } from './SelectField'
 
 type SortDirection = 'asc' | 'desc'
 
@@ -214,23 +215,20 @@ export function DataTable({ columns, rows }: DataTableProps) {
           }}
         />
 
-        <label className="page-size-selector">
-          <span className="search-bar__label">Lignes par page</span>
-          <select
-            value={pageSize}
-            onChange={(event) => {
-              setPageSize(Number(event.target.value))
-              setPage(1)
-            }}
-            className="page-size-selector__select"
-          >
-            {PAGE_SIZE_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectField
+          label="Lignes par page"
+          value={pageSize}
+          onChange={(value) => {
+            setPageSize(Number(value))
+            setPage(1)
+          }}
+        >
+          {PAGE_SIZE_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </SelectField>
       </div>
 
       <div
