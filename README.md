@@ -315,6 +315,18 @@ npm test
 python -m unittest discover -s tests
 ```
 
+## Frontend deployment
+
+The frontend is intended to be published on GitHub Pages at:
+
+- `https://loic-marigny.github.io/real-estate-observatory/`
+
+The deployment workflow is:
+
+- `.github/workflows/deploy-pages.yml`
+
+By default it deploys automatically on every push to `main`, and it computes the Vite base path from the repository name unless `VITE_BASE_PATH` is explicitly set in GitHub repository variables.
+
 ## More detailed data documentation
 
 For pipeline commands, outputs, publication rules, and source-specific notes, see [data/README.md](data/README.md).
