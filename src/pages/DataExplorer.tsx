@@ -97,6 +97,16 @@ export function DataExplorer() {
     [dvfAvailableYears],
   )
 
+  const displayedColumnsCount = hasFilosofiInterface
+    ? (filosofiTableColumns.length > 0
+        ? filosofiTableColumns.length
+        : (selectedDataset?.columns ?? null))
+    : (selectedPreview?.columns.length ?? selectedDataset?.columns ?? null)
+
+  const displayedSourceLocation = hasFilosofiInterface
+    ? filosofiResult?.parquetUrl ?? selectedDataset?.sourceFileLocation ?? null
+    : selectedPreview?.dataset.sourceFileLocation ?? selectedDataset?.sourceFileLocation ?? null
+
   return (
     <div className="page page--content">
       <section className="panel panel--hero">
@@ -224,7 +234,13 @@ export function DataExplorer() {
           <StatusPanel message="Chargement de l’aperçu du jeu de données…" />
         ) : null}
 
-        {selectedDataset ? <DatasetInfoCard dataset={selectedDataset} /> : null}
+        {selectedDataset ? (
+          <DatasetInfoCard
+            dataset={selectedDataset}
+            displayedColumnsCount={displayedColumnsCount}
+            displayedSourceLocation={displayedSourceLocation}
+          />
+        ) : null}
       </section>
     </div>
   )

@@ -2,12 +2,21 @@ import type { DatasetDescriptor } from '../../services/dataExplorerService'
 
 type DatasetInfoCardProps = {
   dataset: DatasetDescriptor
+  displayedColumnsCount?: number | null
+  displayedSourceLocation?: string | null
 }
 
-export function DatasetInfoCard({ dataset }: DatasetInfoCardProps) {
+export function DatasetInfoCard({
+  dataset,
+  displayedColumnsCount,
+  displayedSourceLocation,
+}: DatasetInfoCardProps) {
   const yearsLabel = dataset.availableYears.length
     ? dataset.availableYears.join(', ')
     : 'Non disponible'
+
+  const columnsCount = displayedColumnsCount ?? dataset.columns
+  const sourceLocation = displayedSourceLocation ?? dataset.sourceFileLocation
 
   return (
     <article className="panel dataset-info-card">
@@ -30,16 +39,12 @@ export function DatasetInfoCard({ dataset }: DatasetInfoCardProps) {
           <strong>{dataset.rows ?? 'Non disponible'}</strong>
         </div>
         <div>
-          <span className="dataset-info-card__label">Colonnes</span>
-          <strong>{dataset.columns ?? 'Non disponible'}</strong>
-        </div>
-        <div>
-          <span className="dataset-info-card__label">Dernière mise à jour</span>
-          <strong>{dataset.lastUpdate ?? 'Non disponible'}</strong>
+          <span className="dataset-info-card__label">Colonnes affichées</span>
+          <strong>{columnsCount ?? 'Non disponible'}</strong>
         </div>
         <div>
           <span className="dataset-info-card__label">Aperçu chargé depuis</span>
-          <strong>{dataset.sourceFileLocation || 'Non disponible'}</strong>
+          <strong>{sourceLocation || 'Non disponible'}</strong>
         </div>
       </div>
     </article>
