@@ -329,8 +329,7 @@ By default it deploys automatically on every push to `main`, and it computes the
 
 GitHub Pages must be enabled for the repository:
 
-- either manually in `Settings > Pages` with `Source = GitHub Actions`
-- or automatically by defining a repository secret named `PAGES_DEPLOY_TOKEN` with a token allowed to manage Pages settings for the repository
+- manually in `Settings > Pages` with `Source = GitHub Actions`
 
 ## More detailed data documentation
 

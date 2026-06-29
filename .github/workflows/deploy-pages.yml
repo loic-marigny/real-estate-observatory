@@ -46,15 +46,7 @@ jobs:
       - name: Build frontend
         run: npm run build
 
-      - name: Configure and enable GitHub Pages
-        if: ${{ secrets.PAGES_DEPLOY_TOKEN != '' }}
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-          token: ${{ secrets.PAGES_DEPLOY_TOKEN }}
-
       - name: Configure GitHub Pages
-        if: ${{ secrets.PAGES_DEPLOY_TOKEN == '' }}
         uses: actions/configure-pages@v5
 
       - name: Upload static site artifact
