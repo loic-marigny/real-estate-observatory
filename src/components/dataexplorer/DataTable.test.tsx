@@ -87,5 +87,6 @@ describe('DataTable', () => {
     expect(screen.queryByText('Alpha')).toBeNull()
     expect(screen.getByText('Beta')).toBeTruthy()
     expect(screen.getByText('Gamma')).toBeTruthy()
+    expect(screen.getByText('10-02-2024')).toBeTruthy()
   })
 })

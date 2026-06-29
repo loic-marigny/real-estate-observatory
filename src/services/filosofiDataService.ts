@@ -4,6 +4,7 @@ import {
   getDataAssetUrl,
   getFilosofiParquetUrl,
 } from './dataAssetConfig'
+import type { DatasetColumnType } from '../types/dataExplorer'
 import type {
   FilosofiDepartmentSource,
   FilosofiGeographyLevel,
@@ -24,7 +25,8 @@ import type {
 export type FilosofiResultColumn = {
   key: keyof FilosofiQueryRow
   label: string
-  type: 'text' | 'number'
+  type: DatasetColumnType
+  description?: string | null
 }
 
 const DEFAULT_LIMIT = 50

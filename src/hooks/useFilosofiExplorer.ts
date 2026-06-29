@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import { resolveColumnDefinition } from '../data/columnMetadata'
 import type { DatasetColumn } from '../services/dataExplorerService'
 import {
   getAvailableIndicators,
@@ -236,11 +237,15 @@ export function useFilosofiExplorer(isActive: boolean) {
 
   const tableColumns = useMemo<DatasetColumn[]>(
     () =>
-      resultColumns.map((column) => ({
-        key: column.key,
-        label: column.label,
-        type: column.type,
-      })),
+      resultColumns.map((column) =>
+        resolveColumnDefinition({
+          scope: 'filosofi-query',
+          key: String(column.key),
+          fallbackLabel: column.label,
+          fallbackDescription: column.description ?? null,
+          fallbackType: column.type,
+        }),
+      ),
     [resultColumns],
   )
 

@@ -48,6 +48,12 @@ describe('dataExplorerService', () => {
       'id_mutation',
       'nature_mutation',
     ])
+    expect(preview.columns[0]).toMatchObject({
+      key: 'id_mutation',
+      label: 'Identifiant de mutation',
+      type: 'text',
+    })
+    expect(preview.columns[0].description).toMatch(/mutation immobilière/i)
     expect(preview.records).toEqual([
       { id_mutation: '2024-1', nature_mutation: 'Vente' },
     ])
@@ -104,6 +110,11 @@ describe('dataExplorerService', () => {
       'nature_mutation',
       'price_m2',
     ])
+    expect(preview.columns[1]).toMatchObject({
+      key: 'price_m2',
+      label: 'Prix au m²',
+      type: 'number',
+    })
     expect(preview.dataset.columns).toBe(3)
     expect(preview.dataset.rows).toBe(321)
     expect(preview.dataset.sourceFileLocation).toBe('data/raw/dvf/year=2018/')
@@ -133,6 +144,11 @@ describe('dataExplorerService', () => {
     expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
       '/data/dvf_previews/year=2019/dvf_preview.json',
     )
+    expect(preview.columns[0]).toMatchObject({
+      key: 'nature_mutation',
+      label: 'Nature de mutation',
+      type: 'text',
+    })
     expect(preview.dataset.sourceFileLocation).toBe('data/raw/dvf/year=2019/dvf_raw.txt')
     expect(preview.records).toEqual([{ nature_mutation: 'Vente', price_m2: 987.6 }])
     expect(mockedDuckDbQuery).not.toHaveBeenCalled()

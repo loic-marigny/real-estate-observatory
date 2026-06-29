@@ -3,25 +3,21 @@ import {
   datasetRegistryList,
   type BusinessDatasetId,
 } from '../data/datasetRegistry'
+import { resolveColumnDefinition } from '../data/columnMetadata'
 import { dvfAssetUrls } from './dataAssetConfig'
 import { duckdbClient } from './duckdbClient'
 import { formatPreviewLabel, normalizePreviewValue } from '../utils/text'
+import type {
+  DatasetColumn,
+  DatasetColumnFilterKind,
+  DatasetColumnType,
+} from '../types/dataExplorer'
 
-export type DatasetColumnType = 'text' | 'number' | 'date' | 'boolean'
-
-export type DatasetColumnFilterKind =
-  | 'text'
-  | 'number-range'
-  | 'date-range'
-  | 'boolean-select'
-
-export type DatasetColumn = {
-  key: string
-  label: string
-  type: DatasetColumnType
-  description?: string | null
-  filterKind?: DatasetColumnFilterKind
-}
+export type {
+  DatasetColumn,
+  DatasetColumnFilterKind,
+  DatasetColumnType,
+} from '../types/dataExplorer'
 
 export type DatasetPreviewResponse = {
   dataset_id: BusinessDatasetId
@@ -131,15 +127,18 @@ const normalizePreviewPayload = (payload: unknown): DatasetPreviewResponse => {
               Boolean(item) && typeof item === 'object',
           )
           .map((item) => ({
-            key: typeof item.key === 'string' ? item.key : '',
-            label: formatPreviewLabel(
-              typeof item.key === 'string' ? item.key : '',
-              typeof item.label === 'string' ? item.label : '',
-            ),
-            type: normalizeColumnType(item.type),
-            description:
-              typeof item.description === 'string' ? item.description : null,
-            filterKind: normalizeColumnFilterKind(item.filterKind),
+            ...resolveColumnDefinition({
+              scope: datasetId,
+              key: typeof item.key === 'string' ? item.key : '',
+              fallbackLabel: formatPreviewLabel(
+                typeof item.key === 'string' ? item.key : '',
+                typeof item.label === 'string' ? item.label : '',
+              ),
+              fallbackType: normalizeColumnType(item.type),
+              fallbackDescription:
+                typeof item.description === 'string' ? item.description : null,
+              fallbackFilterKind: normalizeColumnFilterKind(item.filterKind),
+            }),
           }))
           .filter((item) => item.key !== '')
       : [],

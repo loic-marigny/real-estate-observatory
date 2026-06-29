@@ -78,6 +78,34 @@ const formatRemoteValue = (value: unknown): string => {
   return String(value)
 }
 
+const formatDateValue = (value: unknown): string => {
+  const normalized = stringifyValue(value).trim()
+  if (!normalized) {
+    return '—'
+  }
+
+  const isoMatch = normalized.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (isoMatch) {
+    const [, year, month, day] = isoMatch
+    return `${day}-${month}-${year}`
+  }
+
+  const frenchMatch = normalized.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+  if (frenchMatch) {
+    const [, day, month, year] = frenchMatch
+    return `${day}-${month}-${year}`
+  }
+
+  const parsed = Date.parse(normalized)
+  if (!Number.isFinite(parsed)) {
+    return normalized
+  }
+
+  return new Intl.DateTimeFormat('fr-FR')
+    .format(new Date(parsed))
+    .replaceAll('/', '-')
+}
+
 const parseNumericValue = (value: unknown): number | null => {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value
@@ -388,8 +416,15 @@ export function DataTable(props: DataTableProps) {
     }))
   }
 
-  const renderCellValue = (row: Record<string, unknown>, columnKey: string) => {
-    const value = row[columnKey]
+  const renderCellValue = (
+    row: Record<string, unknown>,
+    column: DatasetColumn,
+  ) => {
+    const value = row[column.key]
+    if (column.type === 'date') {
+      return formatDateValue(value)
+    }
+
     if (isRemoteMode) {
       return (props.formatValue ?? formatRemoteValue)(value)
     }
@@ -552,7 +587,7 @@ export function DataTable(props: DataTableProps) {
                       <div className="data-table__header data-table__header--static">
                         <span
                           className="data-table__header-label"
-                          title={column.label}
+                          title={column.description ?? column.label}
                         >
                           {column.label}
                         </span>
@@ -567,11 +602,11 @@ export function DataTable(props: DataTableProps) {
                         aria-label={`Trier ${column.label} par ordre ${
                           activeDirection === 'asc' ? 'croissant' : 'décroissant'
                         }`}
-                        title={column.label}
+                        title={column.description ?? column.label}
                       >
                         <span
                           className="data-table__header-label"
-                          title={column.label}
+                          title={column.description ?? column.label}
                         >
                           {column.label}
                         </span>
@@ -607,7 +642,7 @@ export function DataTable(props: DataTableProps) {
               >
                 {props.columns.map((column) => (
                   <td key={`${rowIndex}-${column.key}`}>
-                    {renderCellValue(row, column.key)}
+                    {renderCellValue(row, column)}
                   </td>
                 ))}
               </tr>
