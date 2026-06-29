@@ -21,10 +21,10 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -46,7 +46,15 @@ jobs:
       - name: Build frontend
         run: npm run build
 
+      - name: Configure and enable GitHub Pages
+        if: ${{ secrets.PAGES_DEPLOY_TOKEN != '' }}
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+          token: ${{ secrets.PAGES_DEPLOY_TOKEN }}
+
       - name: Configure GitHub Pages
+        if: ${{ secrets.PAGES_DEPLOY_TOKEN == '' }}
         uses: actions/configure-pages@v5
 
       - name: Upload static site artifact

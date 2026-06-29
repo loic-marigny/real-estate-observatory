@@ -327,6 +327,11 @@ The deployment workflow is:
 
 By default it deploys automatically on every push to `main`, and it computes the Vite base path from the repository name unless `VITE_BASE_PATH` is explicitly set in GitHub repository variables.
 
+GitHub Pages must be enabled for the repository:
+
+- either manually in `Settings > Pages` with `Source = GitHub Actions`
+- or automatically by defining a repository secret named `PAGES_DEPLOY_TOKEN` with a token allowed to manage Pages settings for the repository
+
 ## More detailed data documentation
 
 For pipeline commands, outputs, publication rules, and source-specific notes, see [data/README.md](data/README.md).
