@@ -13,7 +13,7 @@ export const datasetRegistry: Record<BusinessDatasetId, DatasetRegistryEntry> = 
     id: 'dvf',
     label: 'Transactions immobilières (DVF)',
     description:
-      'Property transactions from the French tax administration.',
+      'Transactions immobilières issues de la Direction générale des Finances publiques.',
     sourceOrganization: 'Direction générale des Finances publiques',
     previewUrl: '/data/dvf_preview.json',
   },
@@ -21,7 +21,7 @@ export const datasetRegistry: Record<BusinessDatasetId, DatasetRegistryEntry> = 
     id: 'filosofi',
     label: 'Revenus et pauvreté (FiLoSoFi)',
     description:
-      'Income distribution and poverty indicators published by INSEE.',
+      'Indicateurs de revenus et de pauvreté publiés par l’Insee.',
     sourceOrganization: 'INSEE',
     previewUrl: '/data/filosofi_preview.json',
   },

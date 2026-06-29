@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { DatasetColumn } from '../../services/dataExplorerService'
 import { SearchBar } from './SearchBar'
 import { SelectField } from './SelectField'
@@ -11,10 +11,30 @@ type ColumnFilter = {
   max: string
 }
 
-type DataTableProps = {
+type BaseDataTableProps = {
   columns: DatasetColumn[]
   rows: Array<Record<string, unknown>>
 }
+
+type ClientDataTableProps = BaseDataTableProps & {
+  mode?: 'client'
+}
+
+type RemoteDataTableProps = BaseDataTableProps & {
+  mode: 'remote'
+  searchQuery: string
+  onSearchQueryChange: (query: string) => void
+  pageSize: number
+  page: number
+  totalRows: number
+  onPageChange: (page: number) => void
+  onPageSizeChange: (pageSize: number) => void
+  footnote?: ReactNode
+  formatValue?: (value: unknown) => string
+  getRowKey?: (row: Record<string, unknown>, rowIndex: number) => string
+}
+
+export type DataTableProps = ClientDataTableProps | RemoteDataTableProps
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100, 200]
 
@@ -28,6 +48,21 @@ const stringifyValue = (value: unknown): string => {
   return String(value)
 }
 
+const formatRemoteValue = (value: unknown): string => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return new Intl.NumberFormat('fr-FR', {
+      maximumFractionDigits: 2,
+    }).format(value)
+  }
+  if (typeof value === 'boolean') {
+    return value ? 'Oui' : 'Non'
+  }
+  if (value === null || value === undefined || value === '') {
+    return '—'
+  }
+  return String(value)
+}
+
 const parseNumericFilter = (value: string): number | null => {
   if (!value.trim()) {
     return null
@@ -36,10 +71,13 @@ const parseNumericFilter = (value: string): number | null => {
   return Number.isFinite(parsed) ? parsed : null
 }
 
-export function DataTable({ columns, rows }: DataTableProps) {
+export function DataTable(props: DataTableProps) {
   const topScrollRef = useRef<HTMLDivElement | null>(null)
   const topScrollInnerRef = useRef<HTMLDivElement | null>(null)
   const tableScrollRef = useRef<HTMLDivElement | null>(null)
+
+  const isRemoteMode = props.mode === 'remote'
+
   const [searchQuery, setSearchQuery] = useState('')
   const [pageSize, setPageSize] = useState(20)
   const [page, setPage] = useState(1)
@@ -48,12 +86,16 @@ export function DataTable({ columns, rows }: DataTableProps) {
   const [columnFilters, setColumnFilters] = useState<Record<string, ColumnFilter>>({})
 
   const filteredRows = useMemo(() => {
+    if (isRemoteMode) {
+      return props.rows
+    }
+
     const normalizedQuery = searchQuery.trim().toLowerCase()
 
-    return rows.filter((row) => {
+    return props.rows.filter((row) => {
       const matchesQuery =
         !normalizedQuery ||
-        columns.some(
+        props.columns.some(
           (column) =>
             column.type === 'text' &&
             stringifyValue(row[column.key]).toLowerCase().includes(normalizedQuery),
@@ -63,7 +105,7 @@ export function DataTable({ columns, rows }: DataTableProps) {
         return false
       }
 
-      return columns.every((column) => {
+      return props.columns.every((column) => {
         const filter = columnFilters[column.key]
         if (!filter) {
           return true
@@ -93,14 +135,14 @@ export function DataTable({ columns, rows }: DataTableProps) {
           .includes(filter.text.trim().toLowerCase())
       })
     })
-  }, [columnFilters, columns, rows, searchQuery])
+  }, [columnFilters, isRemoteMode, props.columns, props.rows, searchQuery])
 
   const sortedRows = useMemo(() => {
-    if (!sortColumn) {
+    if (isRemoteMode || !sortColumn) {
       return filteredRows
     }
 
-    const column = columns.find((item) => item.key === sortColumn)
+    const column = props.columns.find((item) => item.key === sortColumn)
     if (!column) {
       return filteredRows
     }
@@ -128,11 +170,17 @@ export function DataTable({ columns, rows }: DataTableProps) {
 
       return sortDirection === 'asc' ? comparison : -comparison
     })
-  }, [columns, filteredRows, sortColumn, sortDirection])
+  }, [filteredRows, isRemoteMode, props.columns, sortColumn, sortDirection])
 
-  const totalPages = Math.max(1, Math.ceil(sortedRows.length / pageSize))
-  const safePage = Math.min(page, totalPages)
-  const paginatedRows = sortedRows.slice((safePage - 1) * pageSize, safePage * pageSize)
+  const totalPages = isRemoteMode
+    ? Math.max(1, Math.ceil(props.totalRows / props.pageSize))
+    : Math.max(1, Math.ceil(sortedRows.length / pageSize))
+
+  const safePage = isRemoteMode ? Math.min(props.page, totalPages) : Math.min(page, totalPages)
+
+  const paginatedRows = isRemoteMode
+    ? props.rows
+    : sortedRows.slice((safePage - 1) * pageSize, safePage * pageSize)
 
   useEffect(() => {
     const topScroll = topScrollRef.current
@@ -183,7 +231,7 @@ export function DataTable({ columns, rows }: DataTableProps) {
       tableScroll.removeEventListener('scroll', handleTableScroll)
       window.removeEventListener('resize', syncWidths)
     }
-  }, [columns, paginatedRows])
+  }, [props.columns, paginatedRows])
 
   const handleSort = (columnKey: string, direction: SortDirection) => {
     setPage(1)
@@ -204,21 +252,40 @@ export function DataTable({ columns, rows }: DataTableProps) {
     }))
   }
 
+  const renderCellValue = (row: Record<string, unknown>, columnKey: string) => {
+    const value = row[columnKey]
+    if (isRemoteMode) {
+      return (props.formatValue ?? formatRemoteValue)(value)
+    }
+    return isTextValue(value) ? stringifyValue(value) : ''
+  }
+
   return (
     <div className="panel data-table-panel">
       <div className="data-table-toolbar">
-        <SearchBar
-          query={searchQuery}
-          onQueryChange={(query) => {
-            setSearchQuery(query)
-            setPage(1)
-          }}
-        />
+        {isRemoteMode ? (
+          <SearchBar
+            query={props.searchQuery}
+            onQueryChange={props.onSearchQueryChange}
+          />
+        ) : (
+          <SearchBar
+            query={searchQuery}
+            onQueryChange={(query) => {
+              setSearchQuery(query)
+              setPage(1)
+            }}
+          />
+        )}
 
         <SelectField
           label="Lignes par page"
-          value={pageSize}
+          value={isRemoteMode ? props.pageSize : pageSize}
           onChange={(value) => {
+            if (isRemoteMode) {
+              props.onPageSizeChange(Number(value))
+              return
+            }
             setPageSize(Number(value))
             setPage(1)
           }}
@@ -243,97 +310,107 @@ export function DataTable({ columns, rows }: DataTableProps) {
         <table className="data-table">
           <thead>
             <tr>
-              {columns.map((column) => (
+              {props.columns.map((column) => (
                 <th key={column.key}>
-                  <div className="data-table__header">
-                    <span className="data-table__header-label">{column.label}</span>
-                    <div className="data-table__sort-actions">
-                      <button
-                        type="button"
-                        className={`data-table__sort-button${
-                          sortColumn === column.key && sortDirection === 'asc'
-                            ? ' data-table__sort-button--active'
-                            : ''
-                        }`}
-                        onClick={() => handleSort(column.key, 'asc')}
-                        aria-label={`Trier ${column.label} par ordre croissant`}
-                        title="Tri croissant"
-                      >
-                        ↑
-                      </button>
-                      <button
-                        type="button"
-                        className={`data-table__sort-button${
-                          sortColumn === column.key && sortDirection === 'desc'
-                            ? ' data-table__sort-button--active'
-                            : ''
-                        }`}
-                        onClick={() => handleSort(column.key, 'desc')}
-                        aria-label={`Trier ${column.label} par ordre décroissant`}
-                        title="Tri décroissant"
-                      >
-                        ↓
-                      </button>
+                  {isRemoteMode ? (
+                    column.label
+                  ) : (
+                    <div className="data-table__header">
+                      <span className="data-table__header-label">{column.label}</span>
+                      <div className="data-table__sort-actions">
+                        <button
+                          type="button"
+                          className={`data-table__sort-button${
+                            sortColumn === column.key && sortDirection === 'asc'
+                              ? ' data-table__sort-button--active'
+                              : ''
+                          }`}
+                          onClick={() => handleSort(column.key, 'asc')}
+                          aria-label={`Trier ${column.label} par ordre croissant`}
+                          title="Tri croissant"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          className={`data-table__sort-button${
+                            sortColumn === column.key && sortDirection === 'desc'
+                              ? ' data-table__sort-button--active'
+                              : ''
+                          }`}
+                          onClick={() => handleSort(column.key, 'desc')}
+                          aria-label={`Trier ${column.label} par ordre décroissant`}
+                          title="Tri décroissant"
+                        >
+                          ↓
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </th>
               ))}
             </tr>
-            <tr>
-              {columns.map((column) => {
-                const filter = columnFilters[column.key] ?? {
-                  text: '',
-                  min: '',
-                  max: '',
-                }
+            {!isRemoteMode ? (
+              <tr>
+                {props.columns.map((column) => {
+                  const filter = columnFilters[column.key] ?? {
+                    text: '',
+                    min: '',
+                    max: '',
+                  }
 
-                return (
-                  <th key={`${column.key}-filter`}>
-                    {column.type === 'number' ? (
-                      <div className="data-table__numeric-filter">
+                  return (
+                    <th key={`${column.key}-filter`}>
+                      {column.type === 'number' ? (
+                        <div className="data-table__numeric-filter">
+                          <input
+                            type="number"
+                            value={filter.min}
+                            onChange={(event) =>
+                              updateFilter(column.key, { min: event.target.value })
+                            }
+                            placeholder="Min"
+                            className="data-table__filter-input"
+                          />
+                          <input
+                            type="number"
+                            value={filter.max}
+                            onChange={(event) =>
+                              updateFilter(column.key, { max: event.target.value })
+                            }
+                            placeholder="Max"
+                            className="data-table__filter-input"
+                          />
+                        </div>
+                      ) : (
                         <input
-                          type="number"
-                          value={filter.min}
+                          type="text"
+                          value={filter.text}
                           onChange={(event) =>
-                            updateFilter(column.key, { min: event.target.value })
+                            updateFilter(column.key, { text: event.target.value })
                           }
-                          placeholder="Min"
+                          placeholder="Filtrer"
                           className="data-table__filter-input"
                         />
-                        <input
-                          type="number"
-                          value={filter.max}
-                          onChange={(event) =>
-                            updateFilter(column.key, { max: event.target.value })
-                          }
-                          placeholder="Max"
-                          className="data-table__filter-input"
-                        />
-                      </div>
-                    ) : (
-                      <input
-                        type="text"
-                        value={filter.text}
-                        onChange={(event) =>
-                          updateFilter(column.key, { text: event.target.value })
-                        }
-                        placeholder="Filtrer"
-                        className="data-table__filter-input"
-                      />
-                    )}
-                  </th>
-                )
-              })}
-            </tr>
+                      )}
+                    </th>
+                  )
+                })}
+              </tr>
+            ) : null}
           </thead>
           <tbody>
             {paginatedRows.map((row, rowIndex) => (
-              <tr key={`${safePage}-${rowIndex}`}>
-                {columns.map((column) => (
+              <tr
+                key={
+                  isRemoteMode
+                    ? props.getRowKey?.(row, rowIndex) ?? `${safePage}-${rowIndex}`
+                    : `${safePage}-${rowIndex}`
+                }
+              >
+                {props.columns.map((column) => (
                   <td key={`${rowIndex}-${column.key}`}>
-                    {isTextValue(row[column.key])
-                      ? stringifyValue(row[column.key])
-                      : ''}
+                    {renderCellValue(row, column.key)}
                   </td>
                 ))}
               </tr>
@@ -344,13 +421,21 @@ export function DataTable({ columns, rows }: DataTableProps) {
 
       <div className="data-table-footer">
         <span>
-          {sortedRows.length} lignes dans l’aperçu · page {safePage} / {totalPages}
+          {isRemoteMode
+            ? `${props.totalRows} lignes correspondantes · page ${safePage} / ${totalPages}`
+            : `${sortedRows.length} lignes dans l’aperçu · page ${safePage} / ${totalPages}`}
         </span>
         <div className="data-table-footer__actions">
           <button
             type="button"
             className="data-table-footer__button"
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
+            onClick={() => {
+              if (isRemoteMode) {
+                props.onPageChange(Math.max(1, safePage - 1))
+                return
+              }
+              setPage((current) => Math.max(1, current - 1))
+            }}
             disabled={safePage === 1}
           >
             Précédent
@@ -358,13 +443,23 @@ export function DataTable({ columns, rows }: DataTableProps) {
           <button
             type="button"
             className="data-table-footer__button"
-            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+            onClick={() => {
+              if (isRemoteMode) {
+                props.onPageChange(Math.min(totalPages, safePage + 1))
+                return
+              }
+              setPage((current) => Math.min(totalPages, current + 1))
+            }}
             disabled={safePage === totalPages}
           >
             Suivant
           </button>
         </div>
       </div>
+
+      {isRemoteMode && props.footnote ? (
+        <p className="panel__footnote">{props.footnote}</p>
+      ) : null}
     </div>
   )
 }
