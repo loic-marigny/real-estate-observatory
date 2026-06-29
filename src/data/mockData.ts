@@ -88,85 +88,48 @@ export const mockObservatoryContent: ObservatoryContent = {
   methodology: {
     hero: {
       eyebrow: 'Méthodologie',
-      title: 'Construction des indicateurs',
+      title: 'Que mesurent les indicateurs ?',
       description:
-        "Les premières versions s'appuieront sur un socle de jeux de données ouverts couvrant transactions, revenus, performance énergétique, crédit et construction neuve.",
+        "Cette page explique le sens des indicateurs, leur portée et leurs limites, dans un langage accessible à un public non technique.",
     },
-    sources: [
-      {
-        id: 'dvf',
-        category: 'Transactions',
-        name: 'DVF',
-        description:
-          'Demandes de valeurs foncières pour les mutations immobilières, les prix de vente et les caractéristiques principales des biens.',
-      },
-      {
-        id: 'filosofi',
-        category: 'Revenus',
-        name: 'INSEE FiLoSoFi',
-        description:
-          'Indicateurs locaux de niveau de vie et de revenus pour mettre en regard les prix immobiliers et la solvabilité des ménages.',
-      },
-      {
-        id: 'dpe',
-        category: 'Énergie',
-        name: 'ADEME DPE',
-        description:
-          "Diagnostics de performance énergétique pour enrichir l'analyse sur la qualité énergétique du parc résidentiel.",
-      },
-      {
-        id: 'credit',
-        category: 'Financement',
-        name: 'Banque de France',
-        description:
-          'Séries macroéconomiques et de crédit pour contextualiser les conditions de financement et la dynamique de marché.',
-      },
-      {
-        id: 'construction',
-        category: 'Offre neuve',
-        name: 'SDES Sitadel',
-        description:
-          "Permis de construire et mises en chantier pour suivre la production neuve et la pression sur l'offre future.",
-      },
-    ],
   },
   pipeline: {
     hero: {
       eyebrow: 'Pipeline',
-      title: "Préparer l'intégration des données",
+      title: 'Comment les données sont préparées',
       description:
-        "Le tableau de bord sera alimenté par une chaîne simple et traçable, de l'open data brut jusqu'aux indicateurs servis à l'interface.",
+        "Cette page documente la chaîne technique du projet : récupération des fichiers, normalisation, filtrage, production des indicateurs et publication des artefacts utilisés par le site.",
     },
     steps: [
       {
         id: 'raw-open-data',
-        title: 'Raw open data',
+        title: 'Raw',
         description:
-          'Collecte des fichiers sources publiés par les administrations et opérateurs publics.',
+          'Collecte des fichiers bruts tels que publiés par les producteurs de données.',
       },
       {
         id: 'cleaned-data',
-        title: 'Cleaned data',
+        title: 'Bronze',
         description:
-          'Nettoyage, normalisation, contrôle qualité et alignement géographique des jeux de données.',
+          'Normalisation des formats, schémas et colonnes pour rendre les sources comparables.',
       },
       {
         id: 'indicators',
-        title: 'Indicators',
+        title: 'Silver',
         description:
-          "Calcul des séries, agrégats territoriaux et métriques produits pour l'observatoire.",
+          "Application du périmètre d'analyse, des filtres qualité et des variables dérivées.",
       },
       {
         id: 'api',
-        title: 'API',
+        title: 'Gold',
         description:
-          "Exposition d'un contrat de données stable pour les pages publiques et les futurs filtres interactifs.",
+          'Production des tables analytiques finales utilisées par les cartes, graphiques et explorations.',
       },
       {
         id: 'dashboard',
-        title: 'Dashboard',
+        title: 'Publication',
         description:
-          "Consommation des indicateurs par l'interface React pour l'exploration et la communication publique.",
+          "Génération des aperçus publics et diffusion des artefacts vers l'interface et le stockage distant.",
       },
     ],
   },

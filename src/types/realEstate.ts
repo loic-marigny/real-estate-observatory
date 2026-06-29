@@ -64,16 +64,8 @@ export type StatisticsPageContent = {
   sections: StatisticsSection[]
 }
 
-export type MethodologySource = {
-  id: string
-  category: string
-  name: string
-  description: string
-}
-
 export type MethodologyPageContent = {
   hero: MethodologyHero
-  sources: MethodologySource[]
 }
 
 export type PipelineStep = {

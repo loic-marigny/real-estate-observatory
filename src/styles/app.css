@@ -1204,6 +1204,76 @@
   font-weight: 700;
 }
 
+.methodology-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.methodology-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.methodology-card,
+.methodology-step,
+.methodology-reading-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 100%;
+  padding: 22px;
+  border: 1px solid var(--color-border);
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 244, 239, 0.96));
+}
+
+.methodology-card p,
+.methodology-step p,
+.methodology-reading-card p {
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.65;
+}
+
+.methodology-flow {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.methodology-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: var(--color-muted);
+  line-height: 1.7;
+}
+
+.methodology-list--compact {
+  gap: 12px;
+}
+
+.methodology-columns {
+  align-items: start;
+}
+
+.methodology-reading-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.methodology-card h3,
+.methodology-step h3,
+.methodology-reading-card h3 {
+  margin: 0;
+}
+
 @media (max-width: 1100px) {
   .pipeline-flow {
     grid-template-columns: 1fr;
@@ -1217,6 +1287,11 @@
   .pipeline-flow__arrow {
     align-self: center;
     transform: rotate(90deg);
+  }
+
+  .methodology-card-grid,
+  .methodology-flow {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
@@ -1241,6 +1316,10 @@
   .dataset-selector,
   .dataset-info-card__grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .methodology-reading-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1300,5 +1379,11 @@
   .metric-card__header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .methodology-card-grid,
+  .methodology-flow,
+  .methodology-reading-grid {
+    grid-template-columns: 1fr;
   }
 }

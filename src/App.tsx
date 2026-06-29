@@ -41,10 +41,7 @@ const PAGE_DEFINITIONS: Record<PageKey, PageDefinition> = {
     key: 'methodology',
     label: 'Méthodologie',
     render: (): ReactElement => (
-      <Methodology
-        hero={observatoryContent.methodology.hero}
-        sources={observatoryContent.methodology.sources}
-      />
+      <Methodology hero={observatoryContent.methodology.hero} />
     ),
   },
   pipeline: {
