@@ -3,8 +3,11 @@ import type {
   FilosofiTrendResult,
   FilosofiTrendSeries,
 } from '../types/realEstate'
+import { getBundledAssetUrl } from './dataAssetConfig'
 
-const FILOSOFI_NATIONAL_SERIES_URL = '/data/filosofi_national_series.json'
+const FILOSOFI_NATIONAL_SERIES_URL = getBundledAssetUrl(
+  'data/filosofi_national_series.json',
+)
 
 type NationalSeriesRecord = {
   year: number

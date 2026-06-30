@@ -1,3 +1,5 @@
+import { getBundledAssetUrl } from '../services/dataAssetConfig'
+
 export type BusinessDatasetId = 'dvf' | 'filosofi'
 
 export type DatasetRegistryEntry = {
@@ -15,15 +17,15 @@ export const datasetRegistry: Record<BusinessDatasetId, DatasetRegistryEntry> = 
     description:
       'Transactions immobilières issues de la Direction générale des Finances publiques.',
     sourceOrganization: 'Direction générale des Finances publiques',
-    previewUrl: '/data/dvf_preview.json',
+    previewUrl: getBundledAssetUrl('data/dvf_preview.json'),
   },
   filosofi: {
     id: 'filosofi',
     label: 'Revenus et pauvreté (FiLoSoFi)',
     description:
-      'Indicateurs de revenus et de pauvreté publiés par l’Insee.',
+      "Indicateurs de revenus et de pauvreté publiés par l'Insee.",
     sourceOrganization: 'INSEE',
-    previewUrl: '/data/filosofi_preview.json',
+    previewUrl: getBundledAssetUrl('data/filosofi_preview.json'),
   },
 }
 

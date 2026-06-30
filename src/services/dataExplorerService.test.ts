@@ -7,8 +7,10 @@ vi.mock('./duckdbClient', () => ({
 }))
 
 vi.mock('./dataAssetConfig', () => ({
+  getBundledAssetUrl: (path: string) => `/base/${path}`,
   dvfAssetUrls: {
-    yearSilverParquet: (year: number) => `https://assets.example/silver/dvf/year=${year}/dvf_silver.parquet`,
+    yearSilverParquet: (year: number) =>
+      `https://assets.example/silver/dvf/year=${year}/dvf_silver.parquet`,
   },
 }))
 
@@ -142,7 +144,7 @@ describe('dataExplorerService', () => {
     const preview = await getDatasetPreview('dvf', 2019)
 
     expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
-      '/data/dvf_previews/year=2019/dvf_preview.json',
+      '/base/data/dvf_previews/year=2019/dvf_preview.json',
     )
     expect(preview.columns[0]).toMatchObject({
       key: 'nature_mutation',

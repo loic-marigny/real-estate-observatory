@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DvfDepartmentSummary } from '../types/realEstate'
+import { getBundledAssetUrl } from '../services/dataAssetConfig'
 
 type GeoPoint = [number, number]
 type GeoPolygon = GeoPoint[]
@@ -54,7 +55,7 @@ type DragState = {
   moved: boolean
 }
 
-const MAP_URL = '/data/departements.geojson'
+const MAP_URL = getBundledAssetUrl('data/departements.geojson')
 const MAINLAND_WIDTH = 760
 const MAINLAND_HEIGHT = 660
 const MAP_PADDING = 18

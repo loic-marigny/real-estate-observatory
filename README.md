@@ -331,6 +331,11 @@ GitHub Pages must be enabled for the repository:
 
 - manually in `Settings > Pages` with `Source = GitHub Actions`
 
+Required GitHub repository variables:
+
+- `VITE_DATA_ASSET_BASE_URL`: public R2 base URL used by the frontend for remote Parquet and metadata assets
+- optional `VITE_BASE_PATH`: override for the GitHub Pages base path if you do not want the default `/<repository-name>/`
+
 ## More detailed data documentation
 
 For pipeline commands, outputs, publication rules, and source-specific notes, see [data/README.md](data/README.md).

@@ -4,9 +4,10 @@ import type {
   FilosofiSummary,
   FilosofiSummaryCollection,
 } from '../types/realEstate'
+import { getBundledAssetUrl } from './dataAssetConfig'
 
-const FILOSOFI_SUMMARY_URL = '/data/filosofi_summary.json'
-const FILOSOFI_SUMMARIES_URL = '/data/filosofi_summaries.json'
+const FILOSOFI_SUMMARY_URL = getBundledAssetUrl('data/filosofi_summary.json')
+const FILOSOFI_SUMMARIES_URL = getBundledAssetUrl('data/filosofi_summaries.json')
 
 const asNumberOrNull = (value: unknown): number | null => {
   if (typeof value === 'number' && Number.isFinite(value)) {

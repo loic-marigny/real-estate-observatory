@@ -6,16 +6,34 @@ const normalizeBaseUrl = (value: string | undefined): string | null => {
   return trimmed.replace(/\/+$/, '')
 }
 
+const normalizeBasePath = (value: string | undefined): string => {
+  const trimmed = value?.trim()
+  if (!trimmed || trimmed === '/') {
+    return ''
+  }
+
+  const withoutTrailingSlash = trimmed.replace(/\/+$/, '')
+  return withoutTrailingSlash.startsWith('/')
+    ? withoutTrailingSlash
+    : `/${withoutTrailingSlash}`
+}
+
 export const DATA_ASSET_BASE_URL = normalizeBaseUrl(
   import.meta.env.VITE_DATA_ASSET_BASE_URL,
 )
+export const APP_BASE_PATH = normalizeBasePath(import.meta.env.BASE_URL)
+
+export const getBundledAssetUrl = (relativePath: string): string => {
+  const normalizedPath = relativePath.replace(/^\/+/, '')
+  return `${APP_BASE_PATH}/${normalizedPath}`.replace(/\/{2,}/g, '/')
+}
 
 export const getDataAssetUrl = (relativePath: string): string => {
   const normalizedPath = relativePath.replace(/^\/+/, '')
   if (DATA_ASSET_BASE_URL) {
     return `${DATA_ASSET_BASE_URL}/${normalizedPath}`
   }
-  return `/${normalizedPath}`
+  return getBundledAssetUrl(normalizedPath)
 }
 
 export const filosofiAssetUrls = {

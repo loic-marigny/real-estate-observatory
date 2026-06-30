@@ -1,8 +1,8 @@
 import type { DvfDepartmentSummary, DvfSummary, DvfTrendResult } from '../types/realEstate'
 import { duckdbClient } from './duckdbClient'
-import { dvfAssetUrls } from './dataAssetConfig'
+import { dvfAssetUrls, getBundledAssetUrl } from './dataAssetConfig'
 
-const DVF_SUMMARY_URL = '/data/dvf_summary.json'
+const DVF_SUMMARY_URL = getBundledAssetUrl('data/dvf_summary.json')
 const DEFAULT_DVF_YEARS = [2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024]
 let dvfSummaryPromise: Promise<DvfSummary> | null = null
 

@@ -4,7 +4,7 @@ import {
   type BusinessDatasetId,
 } from '../data/datasetRegistry'
 import { resolveColumnDefinition } from '../data/columnMetadata'
-import { dvfAssetUrls } from './dataAssetConfig'
+import { dvfAssetUrls, getBundledAssetUrl } from './dataAssetConfig'
 import { duckdbClient } from './duckdbClient'
 import { formatPreviewLabel, normalizePreviewValue } from '../utils/text'
 import type {
@@ -49,7 +49,7 @@ export type DatasetPreview = {
 }
 
 const getDvfYearPreviewUrl = (year: number): string =>
-  `/data/dvf_previews/year=${year}/dvf_preview.json`
+  getBundledAssetUrl(`data/dvf_previews/year=${year}/dvf_preview.json`)
 
 const escapeSqlStringLiteral = (value: string): string =>
   `'${value.replaceAll("'", "''")}'`
