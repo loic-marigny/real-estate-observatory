@@ -1,5 +1,6 @@
 import type { PropsWithChildren } from 'react'
 import type { NavigationItem, PageKey } from '../types/realEstate'
+import { Footer } from './Footer'
 import { Navbar } from './Navbar'
 
 type LayoutProps = PropsWithChildren<{
@@ -22,6 +23,9 @@ export function Layout({
         onNavigate={onNavigate}
       />
       <main className="app-main">{children}</main>
+      <div className="app-footer-wrap">
+        <Footer />
+      </div>
     </div>
   )
 }
