@@ -6,26 +6,32 @@ const normalizeBaseUrl = (value: string | undefined): string | null => {
   return trimmed.replace(/\/+$/, '')
 }
 
-const normalizeBasePath = (value: string | undefined): string => {
-  const trimmed = value?.trim()
-  if (!trimmed || trimmed === '/') {
-    return ''
-  }
-
-  const withoutTrailingSlash = trimmed.replace(/\/+$/, '')
-  return withoutTrailingSlash.startsWith('/')
-    ? withoutTrailingSlash
-    : `/${withoutTrailingSlash}`
-}
-
 export const DATA_ASSET_BASE_URL = normalizeBaseUrl(
   import.meta.env.VITE_DATA_ASSET_BASE_URL,
 )
-export const APP_BASE_PATH = normalizeBasePath(import.meta.env.BASE_URL)
+
+const FALLBACK_RUNTIME_BASE_URL = 'http://localhost/'
+
+const resolveRuntimeBaseUrl = (): string => {
+  if (typeof document !== 'undefined' && document.baseURI) {
+    return document.baseURI
+  }
+
+  if (typeof window !== 'undefined' && window.location?.href) {
+    return window.location.href
+  }
+
+  const configuredBaseUrl = import.meta.env.BASE_URL?.trim()
+  if (!configuredBaseUrl) {
+    return FALLBACK_RUNTIME_BASE_URL
+  }
+
+  return new URL(configuredBaseUrl, FALLBACK_RUNTIME_BASE_URL).toString()
+}
 
 export const getBundledAssetUrl = (relativePath: string): string => {
   const normalizedPath = relativePath.replace(/^\/+/, '')
-  return `${APP_BASE_PATH}/${normalizedPath}`.replace(/\/{2,}/g, '/')
+  return new URL(normalizedPath, resolveRuntimeBaseUrl()).toString()
 }
 
 export const getDataAssetUrl = (relativePath: string): string => {

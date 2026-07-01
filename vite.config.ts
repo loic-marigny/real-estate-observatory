@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react'
 const resolveBasePath = () => {
   const configuredBasePath = process.env.VITE_BASE_PATH?.trim()
   if (!configuredBasePath) {
-    return '/'
+    return process.env.NODE_ENV === 'production' ? './' : '/'
   }
 
   if (configuredBasePath === '/') {
